@@ -37,9 +37,9 @@ version_files = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-ra -q --cov=mcp_server --cov=mcp_shared --cov=agent --cov-report html --cov-report xml --cov-report term-missing"
+addopts = "-ra -q --cov=mcp_server --cov=mcp_shared --cov=agent --cov=beetle --cov-report html --cov-report xml --cov-report term-missing"
 testpaths = ["tests"]
-pythonpath = [".", "packages"]
+pythonpath = [".", "packages", "packages/beetle/src"]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]

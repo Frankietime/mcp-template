@@ -13,10 +13,11 @@ from agent import AgentDeps, create_agent
 class TestAgentDeps:
     def test_defaults(self) -> None:
         deps = AgentDeps()
-        assert deps.model == "ollama:qwen2.5:3b"
+        assert deps.model == "ollama:qwen3:4b"
         assert deps.server_url == "http://127.0.0.1:8000/mcp"
         assert "/no_think" in deps.system_prompt
         assert "helpful assistant" in deps.system_prompt
+        assert deps.context_window == 32_768
 
     def test_custom_values(self) -> None:
         deps = AgentDeps(

@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 [manifest]
 members = [
     "agent",
+    "beetle",
     "mcp-server",
     "mcp-shared",
     "mcp-template-workspace",
@@ -27,7 +28,9 @@ name = "agent"
 version = "0.1.0"
 source = { editable = "packages/agent" }
 dependencies = [
+    { name = "beetle" },
     { name = "mcp-shared" },
+    { name = "prompt-toolkit" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "python-dotenv" },
@@ -36,7 +39,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beetle", editable = "packages/beetle" },
     { name = "mcp-shared", editable = "packages/mcp_shared" },
+    { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-ai", specifier = ">=0.2.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -219,6 +224,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/c7/94/1009e248bbfbab113
 wheels = [
     { url = "https://files.pythonhosted.org/packages/71/cc/18245721fa7747065ab478316c7fea7c74777d07f37ae60db2e84f8172e8/beartype-0.22.9-py3-none-any.whl", hash = "sha256:d16c9bbc61ea14637596c5f6fbff2ee99cbe3573e46a716401734ef50c3060c2", size = 1333658, upload-time = "2025-12-13T06:50:28.266Z" },
 ]
+
+[[package]]
+name = "beetle"
+version = "0.1.0"
+source = { editable = "packages/beetle" }
+dependencies = [
+    { name = "pydantic-ai" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic-ai", specifier = ">=0.2.0" }]
 
 [[package]]
 name = "boto3"
@@ -1531,6 +1547,7 @@ version = "0.1.0"
 source = { editable = "packages/mcp_shared" }
 dependencies = [
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "rich" },
     { name = "tiktoken" },
     { name = "toon-format" },
@@ -1539,6 +1556,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
     { name = "tiktoken", specifier = ">=0.7.0" },
     { name = "toon-format", git = "https://github.com/toon-format/toon-python.git" },

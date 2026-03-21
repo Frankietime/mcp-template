@@ -27,7 +27,24 @@
       "Bash(xargs wc:*)",
       "Bash(python3 -c \"import importlib.metadata; print\\(importlib.metadata.version\\(''prompt_toolkit''\\)\\)\")",
       "Bash(/c/Users/donad/repos/mcp-template/.venv/Scripts/python.exe -c \"import importlib.metadata; print\\(importlib.metadata.version\\(''prompt_toolkit''\\)\\)\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:realpython.com)",
+      "WebFetch(domain:blog.fka.dev)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "WebFetch(domain:ai.pydantic.dev)",
+      "WebFetch(domain:www.jlowin.dev)",
+      "Bash(python:*)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\donad\\\\repos\\\\mcp-template\\\\packages\\\\agent\\\\src\\\\agent\\\\tui\\\\themes.py\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\donad\\\\repos\\\\mcp-template\\\\packages\\\\agent\\\\src\\\\agent\\\\tui\\\\components\\\\context_bar.py\" -Force)",
+      "Bash(Write-Host \"deleted\")",
+      "Skill(code-review:code-review)",
+      "Bash(where gh:*)",
+      "Read(//usr/local/bin/**)",
+      "Bash(git:*)",
+      "Bash(grep -r \"api_key\\\\|API_KEY\\\\|secret\\\\|SECRET\" /c/Users/donad/repos/mcp-template --include=*.py)",
+      "Bash(grep:*)"
     ]
   }
 }

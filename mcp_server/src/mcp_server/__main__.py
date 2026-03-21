@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastmcp.server import FastMCP
+from mcp_shared.config import get_settings
 
 from .instructions import register_instructions
 from .tool_box import register_all_tools
@@ -52,8 +53,11 @@ mcp = FastMCP(
     # middleware=[RateLimitingMiddleware(capacity=100, refill_rate=20.0)]
 )
 
+_settings = get_settings()
+logger.info("Environment: %s | Features: %s", _settings.app_env, _settings.features.model_dump())
+
 register_instructions(mcp)
-register_all_tools(mcp)
+register_all_tools(mcp, _settings)
 
 
 # --- OPTIONAL: Selective tool visibility (fastmcp 3.0.0+) ---

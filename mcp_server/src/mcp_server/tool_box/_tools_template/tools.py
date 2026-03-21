@@ -12,7 +12,7 @@ from toon_format import count_tokens, encode
 from pydantic import Field
 
 from .docstrings import DOCSTRINGS
-from .schemas import FlatObjectArgument, NestedObjectArgument, ResourceModel
+from .schemas import ExampleOutputModel, FlatObjectArgument, NestedObjectArgument
 from .tool_names import ToolNames
 
 # ADD_TOOL PATTERN
@@ -94,22 +94,22 @@ def add_tool(mcp: FastMCP) -> None:
         # This prevents the model from hallucinating fields that don't exist and is used for validation purposes.
         #
         # RECOMMENDED: Let FastMCP infer from return type annotation (auto-wraps non-objects):
-        #   async def my_tool(...) -> ResourceModel:      # Object - no wrapping needed
-        #   async def my_tool(...) -> list[ResourceModel]:  # Auto-wrapped as {"result": [...]}
+        #   async def my_tool(...) -> ExampleOutputModel:      # Object - no wrapping needed
+        #   async def my_tool(...) -> list[ExampleOutputModel]:  # Auto-wrapped as {"result": [...]}
         #
         # EXPLICIT SCHEMAS (when needed): MCP spec requires object types.
         # If providing explicit schema, you must wrap non-objects yourself:
         #   output_schema={
         #       "type": "object",
         #       "properties": {
-        #           "resources": {"type": "array", "items": ResourceModel.model_json_schema()}
+        #           "resources": {"type": "array", "items": ExampleOutputModel.model_json_schema()}
         #       },
         #       "required": ["resources"]
         #   }
         #   # Then structured_content must match: {"resources": [...]}
         #
         # Use explicit schemas when you need custom property names or schema tweaks.
-        output_schema=ResourceModel.model_json_schema()  # Object type - valid as-is
+        output_schema=ExampleOutputModel.model_json_schema()  # Object type - valid as-is
     )
     # TOOL NAMES AND NAMESPACING
     #
