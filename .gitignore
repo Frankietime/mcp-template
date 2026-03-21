@@ -90,3 +90,6 @@ logs/
 # Token usage comparison reports (generated at runtime)
 token_usage_comparison.md
 
+# Claude Code local settings
+.claude/settings.local.json
+
