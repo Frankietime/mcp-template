@@ -4,6 +4,8 @@ A generic, production-ready scaffold for building [Model Context Protocol (MCP)]
 
 This template preserves the architecture, patterns, and best practices of a real production MCP server — stripped of all domain-specific code so you can fork it and build your own.
 
+It also serves as an **onboarding project** and a **reference codebase for coding agents** (e.g. Claude, Cursor, Copilot). The structure, inline annotations, and documentation are intentionally designed so that an AI agent can read the codebase, understand the conventions, and rapidly scaffold new tools, workflows, and packages without human hand-holding.
+
 ---
 
 ## Architecture
