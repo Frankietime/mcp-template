@@ -28,8 +28,12 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
     that should live for the duration of the server's lifetime.
 
     Example — add auth on startup:
+        import os
         from my_auth import AuthProvider
-        auth = AuthProvider(secret=os.getenv("API_SECRET"))
+        secret = os.getenv("API_SECRET")
+        if not secret:
+            raise RuntimeError("API_SECRET environment variable is required")
+        auth = AuthProvider(secret=secret)
         await auth.initialize()
 
     Yield:
