@@ -1,0 +1,26 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Pydantic-AI MCP client agent"
+requires-python = ">=3.13"
+
+dependencies = [
+    "pydantic-ai>=0.2.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+"mcp-shared",
+]
+
+[project.scripts]
+agent = "agent.__main__:main"
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+mcp-shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"

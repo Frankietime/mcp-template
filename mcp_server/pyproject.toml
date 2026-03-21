@@ -1,0 +1,25 @@
+[project]
+name = "mcp-server"
+version = "0.1.0"
+description = "MCP Template Server — a generic, production-ready MCP server scaffold"
+requires-python = ">=3.13"
+
+dependencies = [
+    "fastmcp<3.0.0",
+    "starlette>=0.46.0",
+    "python-dotenv>=1.0.0",
+    "mcp-shared",
+]
+
+[tool.uv.sources]
+mcp-shared = { workspace = true }
+
+[project.scripts]
+mcp_server = "mcp_server.__main__:main"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"

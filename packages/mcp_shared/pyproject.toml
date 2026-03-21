@@ -1,0 +1,19 @@
+[project]
+name = "mcp-shared"
+version = "0.1.0"
+description = "Shared utilities for MCP tools — response builders, schemas, and patterns"
+requires-python = ">=3.13"
+
+dependencies = [
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",
+    "toon-format @ git+https://github.com/toon-format/toon-python.git",
+    "tiktoken>=0.7.0",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
