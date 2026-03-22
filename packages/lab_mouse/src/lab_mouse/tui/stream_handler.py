@@ -57,5 +57,5 @@ def map_pydantic_event(event: Any) -> SessionEvent | None:
     if isinstance(event, FunctionToolCallEvent):
         return ToolCallEvent(name=event.part.tool_name, args=_extract_args(event.part))
     if isinstance(event, FunctionToolResultEvent):
-        return ToolResultEvent(result=_extract_result(event.part))
+        return ToolResultEvent(result=_extract_result(event.result))
     return None

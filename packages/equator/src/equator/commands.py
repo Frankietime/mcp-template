@@ -229,6 +229,16 @@ async def _fetch_ollama_models() -> list[str]:
         return []
 
 
+@registry.register("tropical", "Open tropical MCP inspector  /tropical [url]")
+def _cmd_tropical(args: list[str], state: TuiState, app: Any) -> None:
+    try:
+        app._launch_tropical(args)
+    except Exception as e:  # noqa: BLE001
+        state.internal_log_lines.append(f"[ERR] tropical: failed to launch — {e}")
+    state.active_panel = "internal_logs"
+    app.invalidate()
+
+
 @registry.register("q", "Quit the TUI")
 def _cmd_quit(args: list[str], state: TuiState, app: Any) -> None:
     app.exit()

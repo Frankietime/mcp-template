@@ -57,7 +57,7 @@ Examples: *401*, *timeout*, *POST /api/submit*, *connection refused*.
 Obey it strictly — treat every limit as a hard ceiling. Cut words, not meaning.
 """
 
-_DEFAULT_MODEL = "ollama:phi4-mini"
+_DEFAULT_MODEL = "ollama:phi4-mini:3.8b"
 
 
 def create_beetle_agent() -> Agent:

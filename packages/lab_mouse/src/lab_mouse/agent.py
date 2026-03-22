@@ -33,7 +33,7 @@ def create_agent(
     """
     os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434")
     if toolsets is None:
-        toolsets = [MCPServerStreamableHTTP(url=deps.server_url)]
+        toolsets = [MCPServerStreamableHTTP(url=deps.server_url, headers=deps.mcp_headers or None)]
     resolved_model: str | Model = model if model is not None else deps.model
     return Agent(
         resolved_model,

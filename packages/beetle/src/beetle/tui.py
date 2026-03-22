@@ -98,7 +98,7 @@ class BeetleTuiApp(BaseTuiApp):
         state = TuiState(
             agent_name="beetle =){",
             log_lines=session._log_lines,
-            model_name=os.getenv("BEETLE_MODEL", "ollama:phi4-mini"),
+            model_name=os.getenv("BEETLE_MODEL", "ollama:phi4-mini:3.8b"),
             username="((o))",
         )
         state.mcp_connected = True
@@ -155,6 +155,7 @@ class BeetleTuiApp(BaseTuiApp):
             await self._run_tasks(*extra)
         finally:
             unsubscribe()
+            self._terminate_tropical()
 
     # ------------------------------------------------------------------
     # Coroutines

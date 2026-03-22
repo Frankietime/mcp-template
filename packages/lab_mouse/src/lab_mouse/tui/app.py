@@ -93,11 +93,14 @@ class AgentTuiApp(BaseTuiApp):
             model_name=deps.model,
             username=deps.username,
             context_tokens_max=deps.context_window,
+            mcp_server_url=deps.server_url,
+            mcp_server_headers=deps.mcp_headers,
         )
         super().__init__(session, state, _STYLE, cmd_registry=cmd_registry)
         self._session: AgentSession  # narrow type for MCP context manager
         self._msg_queue: asyncio.Queue[str] = asyncio.Queue()
         self._beetle_handler: logging.Handler | None = None
+        self._beetle_proc: subprocess.Popen | None = None
 
     # ------------------------------------------------------------------
     # Input routing
@@ -114,6 +117,10 @@ class AgentTuiApp(BaseTuiApp):
         server is ready, ``_attach_beetle_handler`` wires ``BeetleHandler`` into
         the Python logging pipeline so every future record is forwarded in real time.
         """
+        if self._beetle_handler is not None:
+            logging.getLogger(__name__).warning("beetle is already running — /beetle ignored")
+            return
+
         from beetle.log_server import DEFAULT_PORT
 
         tf = tempfile.NamedTemporaryFile(
@@ -123,10 +130,9 @@ class AgentTuiApp(BaseTuiApp):
         tf.close()
 
         cmd = f'uv run beetle --logs "{tf.name}" --port {DEFAULT_PORT}'
-        try:
-            subprocess.Popen(["wt", "--", "cmd", "/k", cmd])
-        except FileNotFoundError:
-            subprocess.Popen(f"start cmd /k {cmd}", shell=True)  # noqa: S602
+        self._beetle_proc = subprocess.Popen(
+            ["cmd", "/k", cmd], creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
 
         asyncio.create_task(self._attach_beetle_handler(DEFAULT_PORT))
 
@@ -177,6 +183,13 @@ class AgentTuiApp(BaseTuiApp):
                     logging.getLogger(name).removeHandler(self._beetle_handler)
                 self._beetle_handler.close()
                 self._beetle_handler = None
+            if self._beetle_proc is not None:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(self._beetle_proc.pid)],
+                    capture_output=True,
+                )
+                self._beetle_proc = None
+            self._terminate_tropical()
 
     # ------------------------------------------------------------------
     # Coroutines

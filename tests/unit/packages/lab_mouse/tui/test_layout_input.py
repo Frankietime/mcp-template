@@ -5,7 +5,7 @@ from __future__ import annotations
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.controls import BufferControl
 
-from equator.components import ContextBarControl, HistoryControl, InputControl, LogsControl, StatusControl
+from equator.components import ContextBarControl, HistoryControl, InputControl, LogsControl, ModelSelectorControl, StatusControl
 from equator.layout import build_layout
 from equator.state import TuiState
 
@@ -48,15 +48,19 @@ class TestBuildLayout:
         history = HistoryControl(state)
         input_ctrl = InputControl(on_submit=lambda _: None)
         status = StatusControl(state)
-        logs = LogsControl(state)
+        logs = LogsControl(state.log_lines, "logs")
+        internal_logs = LogsControl(state.internal_log_lines, "internal_logs")
         context_bar = ContextBarControl(state)
+        model_selector = ModelSelectorControl(state)
         layout = build_layout(
             state=state,
             history=history,
             input_ctrl=input_ctrl,
             status=status,
             logs=logs,
+            internal_logs=internal_logs,
             context_bar=context_bar,
+            model_selector=model_selector,
         )
         return layout, input_ctrl
 
@@ -93,15 +97,19 @@ class TestBuildLayoutFloatContainer:
         history = HistoryControl(state)
         input_ctrl = InputControl(on_submit=lambda _: None)
         status = StatusControl(state)
-        logs = LogsControl(state)
+        logs = LogsControl(state.log_lines, "logs")
+        internal_logs = LogsControl(state.internal_log_lines, "internal_logs")
         context_bar = ContextBarControl(state)
+        model_selector = ModelSelectorControl(state)
         return build_layout(
             state=state,
             history=history,
             input_ctrl=input_ctrl,
             status=status,
             logs=logs,
+            internal_logs=internal_logs,
             context_bar=context_bar,
+            model_selector=model_selector,
         )
 
     def test_layout_root_is_float_container(self) -> None:
@@ -115,7 +123,8 @@ class TestBuildLayoutFloatContainer:
         layout = self._make_layout()
         root = layout.container
         assert isinstance(root, FloatContainer)
-        assert len(root.floats) == 1
+        # Layout has 2 floats: completions menu + model selector
+        assert len(root.floats) == 2
         assert isinstance(root.floats[0].content, CompletionsMenu)
 
 

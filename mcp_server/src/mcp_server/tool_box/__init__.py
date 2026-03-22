@@ -18,3 +18,9 @@ def register_all_tools(mcp: FastMCP, settings: Settings | None = None) -> None:
         if (settings or get_settings()).features.my_feature:
             add_my_feature_tool(mcp)
     """
+    from .portfolio.tools import add_tool as add_portfolio_tool
+
+    _settings = settings or get_settings()
+
+    if _settings.features.portfolio:
+        add_portfolio_tool(mcp)

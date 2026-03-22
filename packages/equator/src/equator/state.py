@@ -19,6 +19,8 @@ class TuiState:
 
     thinking: bool = False
     mcp_connected: bool = False
+    mcp_server_url: str = ""
+    mcp_server_headers: dict[str, str] = field(default_factory=dict)
     agent_name: str = ""
     model_name: str = ""
     username: str = "((o))"

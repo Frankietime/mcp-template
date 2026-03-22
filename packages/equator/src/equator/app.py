@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import sys
 from collections.abc import Callable, Coroutine
 from typing import Any
@@ -72,6 +73,7 @@ class BaseTuiApp:
         self._history = HistoryControl(state)
         self._queue: asyncio.Queue[str] = asyncio.Queue()
         self._token_snapshot: int = 0
+        self._tropical_proc: subprocess.Popen | None = None
 
         completer = SlashCompleter(cmd_registry) if cmd_registry else None
         self._input_ctrl = InputControl(on_submit=self._route_input, completer=completer)
@@ -253,6 +255,42 @@ class BaseTuiApp:
         """Exit the application."""
         self._app.exit()
 
+    def _launch_tropical(self, args: list[str]) -> None:
+        """Launch tropical MCP inspector in a new console, if not already running."""
+        import logging
+
+        if self._tropical_proc is not None and self._tropical_proc.poll() is None:
+            logging.getLogger(__name__).warning("tropical is already running — /tropical ignored")
+            return
+
+        cmd = [sys.executable, "-m", "tropical"]
+        if args:
+            cmd += ["connect-http", args[0]]
+        else:
+            cmd += ["tui"]
+
+        kw: dict[str, Any] = {}
+        if sys.platform == "win32":
+            kw["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+        else:
+            kw["start_new_session"] = True
+        self._tropical_proc = subprocess.Popen(cmd, **kw)  # noqa: S603
+
+        label = args[0] if args else "standalone"
+        self._state.internal_log_lines.append(f"[INF] tropical: inspector launched ({label})")
+
+    def _terminate_tropical(self) -> None:
+        """Terminate the tropical process if it is still running."""
+        if self._tropical_proc is not None:
+            if sys.platform == "win32":
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(self._tropical_proc.pid)],
+                    capture_output=True,
+                )
+            else:
+                self._tropical_proc.terminate()
+            self._tropical_proc = None
+
     def invalidate(self) -> None:
         """Trigger a UI redraw."""
         self._app.invalidate()
@@ -345,6 +383,34 @@ class BaseTuiApp:
         ctrl = self._logs_ctrl if active == "logs" else self._internal_logs_ctrl
         ctrl.page_forward()
         self._app.invalidate()
+
+    # ------------------------------------------------------------------
+    # Tropical launcher
+
+    def _launch_tropical(self, args: list[str]) -> None:
+        """Launch tropical MCP inspector in a new terminal window.
+
+        Uses the first positional arg as the URL when provided; otherwise
+        falls back to ``state.mcp_server_url``.  Auth headers from
+        ``state.mcp_server_headers`` are always forwarded.
+        """
+        import subprocess  # noqa: PLC0415
+        import sys  # noqa: PLC0415
+
+        url = args[0] if args else self._state.mcp_server_url
+        cmd = [sys.executable, "-m", "tropical", "tui"]
+        if url:
+            cmd += ["--url", url]
+            for k, v in self._state.mcp_server_headers.items():
+                cmd += ["--header", f"{k}={v}"]
+        kw: dict[str, Any] = {}
+        if sys.platform == "win32":
+            kw["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+        else:
+            kw["start_new_session"] = True
+        subprocess.Popen(cmd, **kw)  # noqa: S603
+        label = url or "standalone"
+        self._state.internal_log_lines.append(f"[INF] tropical: inspector launched ({label})")
 
     # ------------------------------------------------------------------
     # Coroutines

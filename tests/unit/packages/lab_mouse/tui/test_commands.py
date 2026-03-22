@@ -52,8 +52,8 @@ class TestHandle:
     def test_unknown_command_returns_true_and_warns(self) -> None:
         state = TuiState()
         _registry().handle("/9", state, _app())
-        assert any("9" in line for line in state.log_lines)
-        assert state.active_panel == "logs"
+        assert any("9" in line for line in state.internal_log_lines)
+        assert state.active_panel == "internal_logs"
 
 
 class TestCommandKind:
@@ -180,8 +180,8 @@ class TestBuiltinCommands:
     def test_help_populates_log_lines_and_opens_logs(self) -> None:
         state = TuiState()
         _registry().handle("/help", state, _app())
-        assert any("/" in line for line in state.log_lines)
-        assert state.active_panel == "logs"
+        assert any("/" in line for line in state.internal_log_lines)
+        assert state.active_panel == "internal_logs"
 
     def test_help_does_not_show_interpret_in_base_registry(self) -> None:
         """interpret is agent-specific — absent from the shared base registry."""
@@ -209,9 +209,9 @@ class TestRegistryExtend:
         parent.register("baz", "baz cmd")(lambda *_: None)
         assert child.get("baz") is None
 
-    def test_lab_mouse_registry_has_interpret(self) -> None:
+    def test_lab_mouse_registry_has_beetle(self) -> None:
         from lab_mouse.tui.commands import registry as lab_registry
-        assert lab_registry.get("interpret") is not None
+        assert lab_registry.get("beetle") is not None
 
     def test_base_registry_does_not_have_interpret(self) -> None:
         from equator.commands import registry as base_registry

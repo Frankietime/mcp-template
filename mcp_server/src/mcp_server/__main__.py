@@ -1,7 +1,9 @@
 import asyncio
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastmcp.server import FastMCP
@@ -9,6 +11,7 @@ from mcp_shared.config import get_settings
 
 from .instructions import register_instructions
 from .tool_box import register_all_tools
+from .tool_box.portfolio.loader import load_portfolio
 
 # Load environment variables from .env for local development
 load_dotenv()
@@ -40,6 +43,12 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[None]:
         await auth.close()
     """
     logger.info("MCP Template Server starting up.")
+
+    default_path = str(Path(__file__).parent.parent.parent / "data" / "RESUME.md")
+    md_path = os.getenv("PORTFOLIO_MD_PATH", default_path)
+    portfolio = load_portfolio(md_path)
+    logger.info("Portfolio loaded from %s — %d section(s)", portfolio.source_path, portfolio.section_count)
+
     yield
     logger.info("MCP Template Server shutting down.")
 

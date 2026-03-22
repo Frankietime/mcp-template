@@ -21,7 +21,7 @@ def _make_session(deps: AgentDeps | None = None) -> AgentSession:
 def _make_app(deps: AgentDeps | None = None) -> AgentTuiApp:
     deps = deps or AgentDeps(model="test-model")
     session = _make_session(deps)
-    with patch("tui.app.Application") as MockApp:
+    with patch("equator.app.Application") as MockApp:
         MockApp.return_value = MagicMock()
         app = AgentTuiApp(session, deps)
     return app
@@ -115,7 +115,7 @@ class TestRouteInput:
     def test_action_command_mutates_state(self) -> None:
         app = _make_app()
         app._route_input("/help")
-        assert app._state.active_panel == "logs"
+        assert app._state.active_panel == "internal_logs"
         assert app._msg_queue.empty()
 
     def test_message_goes_to_msg_queue(self) -> None:
@@ -123,25 +123,27 @@ class TestRouteInput:
         app._route_input("hello agent")
         assert not app._msg_queue.empty()
 
-    def test_interpret_dispatched_via_registry(self) -> None:
-        """interpret is now an ACTION in the lab_mouse registry."""
+    def test_beetle_dispatched_via_registry(self) -> None:
+        """beetle is an ACTION in the lab_mouse registry."""
         app = _make_app()
-        with patch.object(app, "_launch_beetle") as mock_launch:
-            app._route_input("/interpret")
+        with patch.object(app, "_launch_beetle") as mock_launch, \
+             patch("lab_mouse.tui.app.asyncio.create_task"):
+            app._route_input("/beetle")
             mock_launch.assert_called_once()
 
-    def test_interpret_does_not_enqueue_message(self) -> None:
+    def test_beetle_does_not_enqueue_message(self) -> None:
         app = _make_app()
-        with patch.object(app, "_launch_beetle"):
-            app._route_input("/interpret")
+        with patch.object(app, "_launch_beetle"), \
+             patch("lab_mouse.tui.app.asyncio.create_task"):
+            app._route_input("/beetle")
         assert app._msg_queue.empty()
 
 
 class TestRouteInputCommandKinds:
     def test_action_command_mutates_state(self) -> None:
         app = _make_app()
-        app._route_input("/help")  # /help is ACTION — opens logs panel
-        assert app._state.active_panel == "logs"
+        app._route_input("/help")  # /help is ACTION — opens internal_logs panel
+        assert app._state.active_panel == "internal_logs"
         assert app._msg_queue.empty()
 
     def test_prompt_command_pre_fills_buffer(self) -> None:
@@ -236,24 +238,27 @@ class TestLaunchBeetle:
         app = _make_app()
         app._state.log_lines = ["[INF] agent: hello", "[ERR] agent: boom"]
         with patch("lab_mouse.tui.app.subprocess.Popen") as mock_popen, \
-             patch("lab_mouse.tui.app.tempfile.NamedTemporaryFile") as mock_tf:
+             patch("lab_mouse.tui.app.tempfile.NamedTemporaryFile") as mock_tf, \
+             patch("lab_mouse.tui.app.asyncio.create_task"):
             mock_file = MagicMock()
             mock_file.name = "/tmp/test.log"
             mock_tf.return_value = mock_file
             app._launch_beetle()
             mock_popen.assert_called()
 
-    def test_launch_falls_back_to_cmd_when_wt_missing(self) -> None:
+    def test_second_launch_while_running_is_ignored(self) -> None:
         app = _make_app()
         app._state.log_lines = []
+        # Simulate beetle already running by pre-setting _beetle_handler
+        app._beetle_handler = MagicMock()
         with patch("lab_mouse.tui.app.subprocess.Popen") as mock_popen, \
-             patch("lab_mouse.tui.app.tempfile.NamedTemporaryFile") as mock_tf:
+             patch("lab_mouse.tui.app.tempfile.NamedTemporaryFile") as mock_tf, \
+             patch("lab_mouse.tui.app.asyncio.create_task"):
             mock_file = MagicMock()
             mock_file.name = "/tmp/test.log"
             mock_tf.return_value = mock_file
-            mock_popen.side_effect = [FileNotFoundError, MagicMock()]
-            app._launch_beetle()
-            assert mock_popen.call_count == 2
+            app._launch_beetle()   # should be ignored — handler already set
+            assert mock_popen.call_count == 0
 
 
 class TestTuiAlias:
