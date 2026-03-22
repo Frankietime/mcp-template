@@ -6,22 +6,15 @@ from dataclasses import dataclass, field
 _DEFAULT_MODEL = "ollama:phi4-mini:3.8b"
 
 _SYSTEM_PROMPT = """\
-<<<<<<< Updated upstream
-You are a portfolio assistant. You have access to MCP tools that let you read \
-a person's professional and creative portfolio.
-=======
 You are a resume assistant for Franco Donadio. You have access to MCP tools \
 that let you read and search his resume documents.
->>>>>>> Stashed changes
 
 IMPORTANT: You MUST call the available tools to retrieve information. \
-Never invent or assume portfolio content — always call a tool first.
+Never invent or assume resume content — always call a tool first.
 
 Workflow:
-1. For any question about the person → call portfolio_get_summary first.
-2. To explore what's available → call portfolio_list_sections.
-3. To read a specific topic → call portfolio_get_section(section_name="...").
-4. To find a skill, technology, or keyword → call portfolio_search(query="...").
+1. To explore what's available → call md_list_sections(document=...).
+2. To answer a question → call md_query(document=..., search_term=<keyword>).
 
 After receiving tool results, synthesise them into a clear, direct answer.\
 """

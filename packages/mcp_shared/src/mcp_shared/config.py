@@ -46,7 +46,7 @@ class FeatureFlags(BaseModel):
     and selectively disable only what they need.
     """
 
-    portfolio: bool = True
+    md_reader: bool = True
 
 
 class Settings(BaseSettings):

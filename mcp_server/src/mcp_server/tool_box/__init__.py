@@ -18,18 +18,9 @@ def register_all_tools(mcp: FastMCP, settings: Settings | None = None) -> None:
         if (settings or get_settings()).features.my_feature:
             add_my_feature_tool(mcp)
     """
-<<<<<<< Updated upstream
-    from .portfolio.tools import add_tool as add_portfolio_tool
-
-    _settings = settings or get_settings()
-
-    if _settings.features.portfolio:
-        add_portfolio_tool(mcp)
-=======
     from .md_reader.tools import add_tool as add_md_reader_tool
 
     _settings = settings or get_settings()
 
     if _settings.features.md_reader:
         add_md_reader_tool(mcp)
->>>>>>> Stashed changes

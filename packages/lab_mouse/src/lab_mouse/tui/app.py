@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 import subprocess
 import tempfile
 
@@ -130,9 +131,14 @@ class AgentTuiApp(BaseTuiApp):
         tf.close()
 
         cmd = f'uv run beetle --logs "{tf.name}" --port {DEFAULT_PORT}'
-        self._beetle_proc = subprocess.Popen(
-            ["cmd", "/k", cmd], creationflags=subprocess.CREATE_NEW_CONSOLE
-        )
+        if shutil.which("wt"):
+            self._beetle_proc = subprocess.Popen(
+                ["wt", "-w", "0", "new-tab", "--title", "Beetle", "--", "cmd", "/k", cmd]
+            )
+        else:
+            self._beetle_proc = subprocess.Popen(
+                ["cmd", "/k", cmd], creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
 
         asyncio.create_task(self._attach_beetle_handler(DEFAULT_PORT))
 
