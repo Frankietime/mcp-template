@@ -71,6 +71,10 @@ class AgentSession:
     async def prompt(self, text: str) -> None:
         """Run *text* through the agent and emit events as they arrive."""
         self._emit(AgentStartEvent())
+        # Qwen3 thinking mode must be suppressed via the user message, not the
+        # system prompt.  Prefix every turn so the model skips CoT reasoning.
+        if "qwen3" in self._deps.model.lower():
+            text = f"/no_think {text}"
 
         async def _event_handler(_ctx: Any, events: AsyncIterable[Any]) -> None:
             async for event in events:

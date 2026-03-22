@@ -92,7 +92,7 @@ class DetailControl(FormattedTextControl):
                 ]
 
         if not state.detail_mode:
-            frags.append(("class:detail.hint", " Ctrl+I  inspect\n"))
+            frags.append(("class:detail.hint", " F2  inspect\n"))
 
         return frags
 
