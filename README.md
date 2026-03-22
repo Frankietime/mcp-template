@@ -27,6 +27,7 @@ mcp-template/
 ├── tests/
 │   ├── unit/               # Unit tests for packages
 │   └── agentic/            # Agentic integration tests (requires running server)
+├── start.py                # One-command startup: mcp_server + lab_mouse
 └── docs/                   # Architecture and best practices documentation
 ```
 
@@ -39,14 +40,15 @@ mcp-template/
 
 ---
 
-## Setup
+## Quickstart
 
 ### Prerequisites
 
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/) package manager
+- [Ollama](https://ollama.com) — for local LLM inference (lab_mouse + beetle)
 
-### Install
+### 1. Install
 
 ```bash
 git clone <your-repo-url> mcp-template
@@ -54,35 +56,185 @@ cd mcp-template
 uv sync --all-packages
 ```
 
-### Configure environment
+### 2. Pull Ollama models
+
+Both **lab_mouse** and **beetle** use local models via Ollama running at `http://localhost:11434` (standard Ollama port — no configuration needed if Ollama is installed normally).
+
+| Agent | Purpose | Default model | Recommended |
+|---|---|---|---|
+| **lab_mouse** | Agent REPL — calls MCP tools, reasons over results | `phi4-mini:3.8b` | `qwen3:4b` |
+| **beetle** | Log interpreter — narrates live log output | `phi4-mini:3.8b` | `phi4-mini:3.8b` |
+
+```bash
+# Minimum — default model for both agents
+ollama pull phi4-mini:3.8b
+
+# Recommended — better reasoning for lab_mouse
+ollama pull qwen3:4b
+
+# Low-memory alternative
+ollama pull qwen3:1.7b
+```
+
+Set the model for each agent in `.env` (or as environment variables):
+
+```bash
+AGENT_MODEL=ollama:qwen3:4b      # lab_mouse (default: ollama:phi4-mini:3.8b)
+BEETLE_MODEL=ollama:phi4-mini:3.8b  # beetle    (default: ollama:phi4-mini:3.8b)
+
+# Only needed if Ollama is NOT on the default port (11434)
+# OLLAMA_BASE_URL=http://localhost:11434
+```
+
+> **Using Claude or OpenAI instead?** Set `AGENT_MODEL=claude-sonnet-4-6` (or any pydantic-ai model string) and add `ANTHROPIC_API_KEY` to `.env`. No Ollama required for lab_mouse in that case.
+
+### 3. Configure environment
 
 ```bash
 cp .env.sample .env
-# Edit .env with your settings (no required values for basic local usage)
+# Edit .env — at minimum set AGENT_MODEL if not using the default
 ```
 
----
+### 4. Start everything
 
-## Running the Server
+**One command** — starts mcp_server in a new terminal, waits for it to be ready, then launches lab_mouse:
 
 ```bash
-uv run mcp_server
+uv run python start.py
 ```
 
-The server starts at `http://127.0.0.1:8000/mcp/` (streamable HTTP transport).
+Or start them separately:
 
-### Health check
+```bash
+# Terminal 1
+uv run mcp_server
+
+# Terminal 2 (once the server is ready)
+uv run lab_mouse
+```
+
+Health check:
 
 ```bash
 curl http://127.0.0.1:8000/healthcheck
 # → OK
 ```
 
+### 5. Use beetle (optional)
+
+From inside lab_mouse, type `/beetle` to open beetle in a new terminal, pre-loaded with current logs and wired for live forwarding.
+
+---
+
+## equator TUI guide
+
+All terminal apps — **lab_mouse** and **beetle** — share the same TUI built on **equator**.
+
+### Layout
+
+```
+┌──────────────────────── lab_mouse ─────────────────────────┐
+│                                                             │
+│  Conversation history                                       │
+│                                                             │
+│  ▏ ((o))  what sections does the resume have?              │
+│                                                             │
+│  ▏ ))o((  ⚙ md_list_sections(document="RESUME")…          │
+│  ▏ ))o((  ⚙ md_list_sections… ✓ 8 sections found          │
+│  ▏ ))o((  I found 8 sections: Summary, Experience, …      │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  AGENT · 312 chars                                          │
+│  Preview: I found 8 sections: Summary, Experience, …       │
+│  Tools: 1/1 completed    F2 inspect                        │
+├─────────────────────────────────────────────────────────────┤
+│  [INF] httpx: POST /mcp 200                                 │
+│  [DBG] mcp: tool result received                            │
+├─────────────────────────────────────────────────────────────┤
+│  > type here                                                │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  ollama:qwen3:4b | MCP: ✓ | ●DBG ●INF ●WRN ●ERR ●CRT      │
+│  Context  ████░░░░░░░░░░░░░░░░░░  4,200 / 32,768  (13%)    │
+│                          TAB = toggle help                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Visual identity:**
+
+| Symbol | Meaning |
+|---|---|
+| `((o))` | You (the user) |
+| `))o((` | The agent |
+| `=){` | beetle |
+
+### Key bindings
+
+| Key | Action |
+|---|---|
+| `Enter` | Send message |
+| `Esc+Enter` | Insert newline |
+| `↑ / ↓` | Navigate conversation history (when input is empty) |
+| `↑ / ↓` | Scroll inspector content (when in expanded inspect mode) |
+| `Esc` | Clear message cursor (return to auto-follow) |
+| `Ctrl+O` | Toggle logs panel |
+| `Shift+Tab` | Toggle internal logs panel |
+| `← / →` | Page through logs (when logs panel is open) |
+| `← / →` | Cycle tool calls (when a message is selected) |
+| `F2` | Toggle inspect / detail expansion |
+| `Tab` | Toggle help sidebar |
+| `↑ / ↓` | Navigate model selector (when open) |
+| `Enter` | Confirm model selection |
+| `Esc` | Cancel model selector |
+| `Ctrl+X` | Quit |
+
+### Slash commands
+
+Type any `/command` in the input. Tab-completion is available.
+
+**Universal (lab_mouse + beetle):**
+
+| Command | Description |
+|---|---|
+| `/help` | Show key bindings and all commands in the logs panel |
+| `/logs` | Show current active log levels |
+| `/logs err crt` | Show only ERR and CRT |
+| `/logs all` | Enable all five levels (default on startup) |
+| `/logs none` | Silence all levels |
+| `/clear` | Clear the conversation history |
+| `/clearlogs` | Clear the logs panel |
+| `/q` | Quit |
+
+**lab_mouse only:**
+
+| Command | Description |
+|---|---|
+| `/beetle` | Launch beetle in a new terminal with live log forwarding |
+| `/tropical` | Open tropical inspector, auto-connected to the active MCP server |
+| `/tropical <url>` | Open tropical connected to a specific URL |
+| `/tools` | List tools from connected MCP servers |
+| `/model <name>` | Switch model inline — e.g. `/model ollama:qwen3:4b` |
+
+### Log levels
+
+The status bar shows which levels are active (filled dot = on, empty = off). All levels are on by default.
+
+```
+●DBG  ●INF  ●WRN  ●ERR  ●CRT
+```
+
+### Inspect mode (F2)
+
+When a message is selected (`↑ / ↓`):
+- **Compact**: one summary line shown below the message — role, timing, tool count.
+- **Expanded** (press `F2`): full tool args + results with JSON syntax highlighting.
+  - `← / →` cycles through tool calls within the same turn.
+  - `↑ / ↓` scrolls through long inspector content.
+  - `F2` again collapses; `Esc` clears the selection entirely.
+
 ---
 
 ## Developer Toolchain
-
-The template ships three tools for iterating on your MCP server without leaving the terminal.
 
 ### equator — TUI foundation
 
@@ -152,10 +304,8 @@ beetle --logs ./app.log     # pre-load a log file on startup
 beetle --no-server          # disable TCP listener (static analysis)
 cat app.log | beetle        # pipe mode
 
-BEETLE_MODEL=ollama:qwen3:4b   # interpreter model (default: ollama:phi4-mini:3.8b)
+BEETLE_MODEL=ollama:phi4-mini:3.8b   # interpreter model (default: ollama:phi4-mini:3.8b)
 ```
-
-Recommended models: `phi4-mini:3.8b` (default), `qwen3:4b` (recommended), `qwen3:1.7b` (low memory). Pull with `ollama pull <tag>`.
 
 See [`packages/beetle/README.md`](packages/beetle/README.md) for the full reference.
 
@@ -176,24 +326,15 @@ Supports STDIO, HTTP (Streamable), and TCP transports. Server configs persist in
 An interactive terminal agent connected to your MCP server. Tests whether the LLM actually uses your tools correctly — not just whether the tools return the right data.
 
 ```bash
-uv run mcp_server   # Terminal 1
-uv run lab_mouse    # Terminal 2
+uv run python start.py      # starts both mcp_server and lab_mouse
 ```
 
-Shows streaming responses, live tool call args and results, log monitoring, and an extensible slash-command system.
+or manually:
 
-| Command | Description |
-|---|---|
-| `/tropical` | Open tropical inspector, auto-connected to the active MCP server |
-| `/tropical <url>` | Open tropical connected to a specific URL |
-| `/beetle` | Launch beetle in a new terminal |
-| `/tools` | List tools from connected MCP servers |
-| `/model <name>` | Switch model inline |
-| `/logs [levels]` | Filter log levels — e.g. `/logs err crt`, `/logs all` |
-| `/help` | Show all commands and key bindings |
-| `/q` | Quit |
-
-When `/tropical` is invoked, tropical opens pre-connected to the same server the agent is using, including any configured auth headers — no manual configuration required.
+```bash
+uv run mcp_server           # Terminal 1
+uv run lab_mouse            # Terminal 2
+```
 
 ---
 
