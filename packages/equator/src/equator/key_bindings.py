@@ -17,6 +17,7 @@ def build_key_bindings(
     on_model_down: Callable[[], None],
     on_model_confirm: Callable[[], None],
     on_model_cancel: Callable[[], None],
+    on_model_favorite: Callable[[], None],
     on_cursor_prev: Callable[[], None],
     on_cursor_next: Callable[[], None],
     on_log_page_back: Callable[[], None],
@@ -42,6 +43,7 @@ def build_key_bindings(
         on_model_up / on_model_down: Navigate model selector with arrow keys.
         on_model_confirm: Confirm model selection (``Enter`` when selector open).
         on_model_cancel: Dismiss model selector (``Escape`` when selector open).
+        on_model_favorite: Toggle favourite on highlighted model (``*`` when selector open).
         on_cursor_prev / on_cursor_next: Navigate message cursor (Up/Down when input empty).
         on_log_page_back / on_log_page_forward: Paginate the logs panel.
         on_detail_toggle: Not bound; kept for API compatibility.
@@ -100,6 +102,10 @@ def build_key_bindings(
     def _model_cancel(event) -> None:  # type: ignore[no-untyped-def]
         on_model_cancel()
 
+    @kb.add("*", filter=selector_open)
+    def _model_favorite(event) -> None:  # type: ignore[no-untyped-def]
+        on_model_favorite()
+
     # Message cursor — Up/Down when input is empty and no overlay is active
     @kb.add("up", filter=input_empty & ~selector_open, eager=True)
     def _cursor_up(event) -> None:  # type: ignore[no-untyped-def]
@@ -114,21 +120,21 @@ def build_key_bindings(
     def _cursor_escape(event) -> None:  # type: ignore[no-untyped-def]
         on_detail_exit()
 
-    # Tool call navigation — Left/Right when cursor active and not in logs panel
-    @kb.add("left", filter=msg_cursor & ~logs_active & ~selector_open, eager=True)
+    # Tool call navigation — Left/Right when cursor active
+    @kb.add("left", filter=msg_cursor & ~selector_open, eager=True)
     def _tool_prev(event) -> None:  # type: ignore[no-untyped-def]
         on_detail_tool_prev()
 
-    @kb.add("right", filter=msg_cursor & ~logs_active & ~selector_open, eager=True)
+    @kb.add("right", filter=msg_cursor & ~selector_open, eager=True)
     def _tool_next(event) -> None:  # type: ignore[no-untyped-def]
         on_detail_tool_next()
 
-    # Logs panel pagination — active when a logs panel is visible and cursor not selected
-    @kb.add("left", filter=logs_active & ~msg_cursor, eager=True)
+    # Logs panel pagination — always available (no cursor, no selector)
+    @kb.add("left", filter=~msg_cursor & ~selector_open, eager=True)
     def _log_page_back(event) -> None:  # type: ignore[no-untyped-def]
         on_log_page_back()
 
-    @kb.add("right", filter=logs_active & ~msg_cursor, eager=True)
+    @kb.add("right", filter=~msg_cursor & ~selector_open, eager=True)
     def _log_page_forward(event) -> None:  # type: ignore[no-untyped-def]
         on_log_page_forward()
 

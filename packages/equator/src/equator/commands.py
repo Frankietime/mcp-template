@@ -211,9 +211,13 @@ async def _fetch_and_open(state: TuiState, app: Any) -> None:
     state.show_model_selector = True
     app.invalidate()
     models = await _fetch_ollama_models()
-    state.available_models = models
-    if state.model_name in models:
-        state.model_selector_idx = models.index(state.model_name)
+    # Prepend persisted favourites not already in the Ollama list so they're
+    # always reachable (e.g. Gemini models that aren't served by Ollama).
+    extras = [m for m in sorted(state.favorite_models) if m not in models]
+    state.available_models = extras + models
+    full = state.available_models
+    if state.model_name in full:
+        state.model_selector_idx = full.index(state.model_name)
     else:
         state.model_selector_idx = 0
     app.invalidate()

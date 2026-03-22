@@ -30,10 +30,11 @@ class TuiState:
     active_panel: ActivePanel = "main"
     context_tokens_used: int = 0
     context_tokens_max: int = 32_768
-    active_levels: set[str] = field(default_factory=lambda: {"ERR", "DBG"})
+    active_levels: set[str] = field(default_factory=lambda: {"DBG", "INF", "WRN", "ERR", "CRT"})
     show_model_selector: bool = False
     available_models: list[str] = field(default_factory=list)
     model_selector_idx: int = 0
+    favorite_models: set[str] = field(default_factory=set)
     detail_mode: bool = False
     detail_tool_idx: int = -1  # -1 = show message summary; ≥0 = tool call index within selected turn
     show_help: bool = False

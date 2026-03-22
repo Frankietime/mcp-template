@@ -86,8 +86,14 @@ class BeetleSession:
                 active_levels=active_levels,
             )
             async with self._agent.run_stream(beetle_prompt, message_history=self._history) as result:
+                streamed = ""
                 async for delta in result.stream_text(delta=True):
+                    streamed += delta
                     self._emit(TextDeltaEvent(agent_id="beetle", content=delta))
+                # Thinking models (e.g. Gemini) may emit no stream deltas when reasoning
+                # dominates — fall back to the fully-accumulated response text.
+                if not streamed.strip() and result.data:
+                    self._emit(TextDeltaEvent(agent_id="beetle", content=result.data))
                 usage = result.usage()
                 if usage.total_tokens is not None:
                     self._emit(TokenUsageEvent(total=usage.total_tokens))

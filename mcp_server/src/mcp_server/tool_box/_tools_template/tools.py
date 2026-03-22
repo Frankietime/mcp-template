@@ -41,7 +41,6 @@ def add_tool(mcp: FastMCP) -> None:  # noqa: ARG001
         "Copy it to a new feature directory instead."
     )
 
-    @track_tool_execution  # This decorator provides basic tool execution logging
     @mcp.tool(
         # the @mcp.tool decorator exposes a series of arguments that can be used
         # as metadata for agent guidance and system information.
@@ -124,6 +123,7 @@ def add_tool(mcp: FastMCP) -> None:  # noqa: ARG001
     # has non-trivial effects when agents need to choose tools between multiple MCP Servers.
     #
     # Choose a consistent prefix (e.g., your server name) when creating tools.
+    @track_tool_execution  # This decorator provides basic tool execution logging
     async def mcp_tool_template(
 
         # ANNOTATED VS NON-ANNOTATED ARGUMENTS

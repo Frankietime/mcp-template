@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 import re
 import textwrap
+
+from ._json_lex import lex_json_fragments
 import time
 from dataclasses import dataclass, field
 from typing import Literal
@@ -78,7 +80,11 @@ class _StreamingMessage:
     """In-progress agent response being built delta by delta."""
 
     agent_id: str
-    content: str = field(default="")
+    _chunks: list[str] = field(default_factory=list)
+
+    @property
+    def content(self) -> str:
+        return "".join(self._chunks)
 
 
 class HistoryControl(FormattedTextControl):
@@ -138,7 +144,7 @@ class HistoryControl(FormattedTextControl):
         """Append a text chunk to the in-progress agent response."""
         if self._streaming is None:
             self._streaming = _StreamingMessage(agent_id=self._current_agent_id)
-        self._streaming.content += content
+        self._streaming._chunks.append(content)
 
     def end_agent_stream(self, final_output: str = "") -> None:
         """Finalise the in-progress agent response and move it to history."""
@@ -378,24 +384,10 @@ class HistoryControl(FormattedTextControl):
                 tidx = state.detail_tool_idx
                 name = tool.content.lstrip("\u2699 ").rstrip("\u2026")
                 frags.append(("class:detail.header", f"  TOOL {tidx + 1}/{n}  \u00b7  {name}\n"))
-                frags.append(("class:detail.key", "  Args    "))
-                if tool.tool_args:
-                    try:
-                        args_str = json.dumps(tool.tool_args, indent=2)
-                        if len(args_str) > 200:
-                            args_str = args_str[:200] + "\u2026"
-                    except Exception:
-                        args_str = str(tool.tool_args)
-                else:
-                    args_str = "(none)"
-                frags.append(("class:detail.val", args_str + "\n"))
-                frags.append(("class:detail.key", "  Result  "))
-                result = tool.tool_result
-                if result:
-                    result = result[:200] + "\u2026" if len(result) > 200 else result
-                else:
-                    result = "(pending\u2026)"
-                frags.append(("class:detail.val", result + "\n"))
+                frags.append(("class:detail.key", "  Args    \n"))
+                frags.extend(lex_json_fragments(tool.tool_args))
+                frags.append(("class:detail.key", "  Result  \n"))
+                frags.extend(lex_json_fragments(tool.tool_result or ("(pending…)" if not tool.complete else "")))
                 frags.append(("class:detail.hint", "  \u2190 \u2192  cycle    F2  collapse    Esc  clear\n"))
             elif msg.role == "agent":
                 # agent message metadata
@@ -421,22 +413,10 @@ class HistoryControl(FormattedTextControl):
                 # tool row: show args + result
                 name = msg.content.lstrip("\u2699 ").rstrip("\u2026")
                 frags.append(("class:detail.header", f"  TOOL  \u00b7  {name}\n"))
-                frags.append(("class:detail.key", "  Args    "))
-                if msg.tool_args:
-                    try:
-                        args_str = json.dumps(msg.tool_args, indent=2)
-                        if len(args_str) > 200:
-                            args_str = args_str[:200] + "\u2026"
-                    except Exception:
-                        args_str = str(msg.tool_args)
-                else:
-                    args_str = "(none)"
-                frags.append(("class:detail.val", args_str + "\n"))
-                frags.append(("class:detail.key", "  Result  "))
-                result = msg.tool_result if msg.tool_result else ("(pending\u2026)" if not msg.complete else "(none)")
-                if len(result) > 200:
-                    result = result[:200] + "\u2026"
-                frags.append(("class:detail.val", result + "\n"))
+                frags.append(("class:detail.key", "  Args    \n"))
+                frags.extend(lex_json_fragments(msg.tool_args))
+                frags.append(("class:detail.key", "  Result  \n"))
+                frags.extend(lex_json_fragments(msg.tool_result or ("(pending…)" if not msg.complete else "")))
                 frags.append(("class:detail.hint", "  F2  collapse    Esc  clear\n"))
             else:
                 # user message: show turn agent metadata

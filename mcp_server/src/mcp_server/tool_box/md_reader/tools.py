@@ -5,8 +5,9 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
-from mcp_shared import ErrorResponse, NextStep, SummaryResponse
+from mcp_shared import ErrorResponse, NextStep, ResponseFormat, SummaryResponse
 from mcp_shared.logging import track_tool_execution
+from mcp_shared.token_usage import log_token_usage
 from pydantic import Field
 
 from .docstrings import DOCSTRINGS
@@ -69,6 +70,7 @@ def add_tool(mcp: FastMCP) -> None:
     @track_tool_execution
     async def md_list_sections(
         document: Annotated[MdFileKey, _FILE_ANNOTATION],
+        response_format: Annotated[ResponseFormat, "Use this argument to control the amount of detail you need from this tool response."] = ResponseFormat.DETAILED,
     ) -> ToolResult:
         file_path = _FILE_MAP[document]
 
@@ -91,20 +93,30 @@ def add_tool(mcp: FastMCP) -> None:
             prefix = ("#" * s.level + " ") if s.level > 0 else ""
             return f"{prefix}{s.heading}"
 
-        table_rows = "\n".join(f"| {_heading_label(s)} | {s.word_count} |" for s in section_items)
-        table = f"| Section | Words |\n|---|---|\n{table_rows}"
-
-        summary = SummaryResponse(
-            summary=f"**{document}** has **{len(section_items)}** sections.",
-            data_hint="Use a heading name (or key term from it) as search_term in md_query.",
-            data_preview=table,
-            next_steps=[
-                NextStep(
-                    tool_name=ToolNames.MD_QUERY,
-                    description="Query a specific section by passing its heading as search_term",
-                ),
-            ],
-        )
+        if response_format == ResponseFormat.CONCISE:
+            summary = SummaryResponse(
+                summary=f"**{document}** has **{len(section_items)}** sections.",
+                next_steps=[
+                    NextStep(
+                        tool_name=ToolNames.MD_QUERY,
+                        description="Query a specific section by passing its heading as search_term",
+                    ),
+                ],
+            )
+        else:
+            table_rows = "\n".join(f"| {_heading_label(s)} | {s.word_count} |" for s in section_items)
+            table = f"| Section | Words |\n|---|---|\n{table_rows}"
+            summary = SummaryResponse(
+                summary=f"**{document}** has **{len(section_items)}** sections.",
+                data_hint="Use a heading name (or key term from it) as search_term in md_query.",
+                data_preview=table,
+                next_steps=[
+                    NextStep(
+                        tool_name=ToolNames.MD_QUERY,
+                        description="Query a specific section by passing its heading as search_term",
+                    ),
+                ],
+            )
 
         return ToolResult(
             content=[TextContent(type="text", text=summary.render())],
@@ -129,6 +141,7 @@ def add_tool(mcp: FastMCP) -> None:
         document: Annotated[MdFileKey, _FILE_ANNOTATION],
         search_term: Annotated[str, "Keyword or phrase extracted from the user's question."],
         max_sections: Annotated[int, "Maximum number of sections to return (1–5)."] = Field(default=3, ge=1, le=5),
+        response_format: Annotated[ResponseFormat, "Use this argument to control the amount of detail you need from this tool response."] = ResponseFormat.DETAILED,
     ) -> ToolResult:
         if not search_term.strip():
             raise ToolError(
@@ -160,10 +173,17 @@ def add_tool(mcp: FastMCP) -> None:
                 heading=s.heading,
                 content=s.content,
                 word_count=len(s.content.split()),
-                score=round(s.score, 4),
             )
             for s in scored
         ]
+
+        result = QueryResult(search_term=search_term, sections=sections)
+
+        log_token_usage(
+            tool_name=ToolNames.MD_QUERY,
+            tool_id=search_term,
+            data=result.model_dump(),
+        )
 
         if not sections:
             summary = SummaryResponse(
@@ -176,21 +196,19 @@ def add_tool(mcp: FastMCP) -> None:
                     ),
                 ],
             )
+        elif response_format == ResponseFormat.CONCISE:
+            summary = SummaryResponse(
+                summary=f'Found **{len(sections)}** relevant section(s) for **"{search_term}"** in **{document}**.',
+                highlights=[f"Top match: {sections[0].heading}"],
+            )
         else:
-            preview_lines = "\n".join(f"- **{s.heading}** ({s.word_count} words, score {s.score})" for s in sections)
+            preview_lines = "\n".join(f"- **{s.heading}** ({s.word_count} words)" for s in sections)
             summary = SummaryResponse(
                 summary=f'Found **{len(sections)}** relevant section(s) for **"{search_term}"** in **{document}**.',
                 data_hint="sections contains the full text of each matched section — use it as context.",
                 data_preview=preview_lines,
-                highlights=[f"Top match: {sections[0].heading} (score {sections[0].score})"],
+                highlights=[f"Top match: {sections[0].heading}"],
             )
-
-        result = QueryResult(
-            file_path=str(file_path),
-            search_term=search_term,
-            total_sections=reader.section_count,
-            sections=sections,
-        )
 
         return ToolResult(
             content=[TextContent(type="text", text=summary.render())],

@@ -36,7 +36,7 @@ mcp-template/
 - **`mcp_shared`** — All tools use shared response builders (`SummaryResponse`, `ErrorResponse`) and `ResponseFormat` enum to control output verbosity and token usage.
 - **`_tools_template`** — A fully annotated reference implementation. Every architectural decision is documented inline. Read this before creating your first tool.
 - **Docstring Registry** — Tool descriptions are versioned separately from logic, enabling A/B testing and prompt engineering without touching business logic.
-- **ToolNames Registry** — All tool names are constants. No inline strings — prevents typos and enables safe IDE refactors.
+- **ToolNames Registry** — All tool names are constants. No inline strings — enables suggesting tool calls in other tools responses.
 
 ---
 
@@ -86,7 +86,13 @@ BEETLE_MODEL=ollama:phi4-mini:3.8b  # beetle    (default: ollama:phi4-mini:3.8b)
 # OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-> **Using Claude or OpenAI instead?** Set `AGENT_MODEL=claude-sonnet-4-6` (or any pydantic-ai model string) and add `ANTHROPIC_API_KEY` to `.env`. No Ollama required for lab_mouse in that case.
+> **Using a cloud model instead of Ollama?** Set `AGENT_MODEL` to any [pydantic-ai model string](https://ai.pydantic.dev/models/) and add the corresponding API key. No Ollama required for lab_mouse in that case.
+>
+> | Provider | `AGENT_MODEL` example | API key env var |
+> |---|---|---|
+> | Google Gemini | `google-gla:gemini-2.0-flash` | `GEMINI_API_KEY` |
+> | Anthropic | `anthropic:claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
+> | OpenAI | `openai:gpt-4o` | `OPENAI_API_KEY` |
 
 ### 3. Configure environment
 
