@@ -37,9 +37,9 @@ version_files = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-ra -q --cov=mcp_server --cov=mcp_shared --cov=lab_mouse --cov=beetle --cov=tui --cov-report html --cov-report xml --cov-report term-missing"
+addopts = "-ra -q --cov=mcp_server --cov=mcp_shared --cov=lab_mouse --cov=beetle --cov=equator --cov-report html --cov-report xml --cov-report term-missing"
 testpaths = ["tests"]
-pythonpath = [".", "packages", "packages/beetle/src", "packages/tui/src", "packages/lab_mouse/src"]
+pythonpath = [".", "packages", "packages/beetle/src", "packages/equator/src", "packages/lab_mouse/src"]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]

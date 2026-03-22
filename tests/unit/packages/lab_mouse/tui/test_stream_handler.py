@@ -15,7 +15,7 @@ from pydantic_ai.messages import (
 )
 
 from lab_mouse.tui.stream_handler import map_pydantic_event
-from tui.protocol import TextDeltaEvent, ToolCallEvent, ToolResultEvent
+from equator.protocol import TextDeltaEvent, ToolCallEvent, ToolResultEvent
 
 
 class TestMapPydanticEvent:

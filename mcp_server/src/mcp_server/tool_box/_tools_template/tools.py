@@ -35,8 +35,11 @@ from .tool_names import ToolNames
 # - Each feature is self-contained and independently deployable
 
 
-def add_tool(mcp: FastMCP) -> None:
-    """Register the tool template example with the MCP instance."""
+def add_tool(mcp: FastMCP) -> None:  # noqa: ARG001
+    raise NotImplementedError(
+        "_tools_template is a reference template and must not be registered with the MCP server. "
+        "Copy it to a new feature directory instead."
+    )
 
     @track_tool_execution  # This decorator provides basic tool execution logging
     @mcp.tool(

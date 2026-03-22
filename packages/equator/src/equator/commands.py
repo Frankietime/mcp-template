@@ -15,6 +15,7 @@ Command kinds:
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
@@ -159,9 +160,13 @@ def _cmd_help(args: list[str], state: TuiState, app: Any) -> None:
         "[INF] help: ──────────────────────────────────────────",
         "[INF] help:   Enter          Send message",
         "[INF] help:   Esc+Enter      Insert newline",
-        "[INF] help:   Tab            Show raw logs panel",
-        "[INF] help:   Shift+Tab      Show interpretation panel",
-        "[INF] help:   Ctrl+L         Clear conversation",
+        "[INF] help:   Ctrl+O         Toggle logs panel",
+        "[INF] help:   Tab            Toggle help sidebar",
+        "[INF] help:   F2             Toggle inspect expansion",
+        "[INF] help:   Shift+Tab      Toggle internal logs",
+        "[INF] help:   ↑ / ↓          Navigate messages (when input empty)",
+        "[INF] help:   ← / →          Cycle tool calls / page logs",
+        "[INF] help:   Esc            Clear message cursor",
         "[INF] help:   Ctrl+X         Quit",
         "[INF] help: ══════════════════════════════════════════",
     ]
@@ -194,6 +199,34 @@ def _cmd_logs(args: list[str], state: TuiState, app: Any) -> None:
     state.internal_log_lines.append(f"[INF] logs: active levels → {active}")
     state.active_panel = "internal_logs"
     app.invalidate()
+
+
+@registry.register("model", "Open model selector (fetches from Ollama)")
+def _cmd_model(args: list[str], state: TuiState, app: Any) -> None:
+    asyncio.get_event_loop().create_task(_fetch_and_open(state, app))
+
+
+async def _fetch_and_open(state: TuiState, app: Any) -> None:
+    state.available_models = []
+    state.show_model_selector = True
+    app.invalidate()
+    models = await _fetch_ollama_models()
+    state.available_models = models
+    if state.model_name in models:
+        state.model_selector_idx = models.index(state.model_name)
+    else:
+        state.model_selector_idx = 0
+    app.invalidate()
+
+
+async def _fetch_ollama_models() -> list[str]:
+    try:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            r = await client.get("http://localhost:11434/api/tags", timeout=5.0)
+            return [f"ollama:{m['name']}" for m in r.json().get("models", [])]
+    except Exception:  # noqa: BLE001
+        return []
 
 
 @registry.register("q", "Quit the TUI")

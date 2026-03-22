@@ -9,7 +9,7 @@ import pytest
 from lab_mouse.deps import AgentDeps
 from lab_mouse.session import AgentSession
 from lab_mouse.tui.app import AgentTuiApp
-from tui.protocol import AgentEndEvent, AgentStartEvent, ClearedEvent, TextDeltaEvent, ToolCallEvent, ToolResultEvent
+from equator.protocol import AgentEndEvent, AgentStartEvent, ClearedEvent, TextDeltaEvent, ToolCallEvent, ToolResultEvent
 
 
 def _make_session(deps: AgentDeps | None = None) -> AgentSession:
@@ -145,7 +145,7 @@ class TestRouteInputCommandKinds:
         assert app._msg_queue.empty()
 
     def test_prompt_command_pre_fills_buffer(self) -> None:
-        from tui.commands import CommandKind
+        from equator.commands import CommandKind
         app = _make_app()
         app._cmd_registry.register(
             "tpltest", "fill template",
@@ -157,7 +157,7 @@ class TestRouteInputCommandKinds:
         assert app._msg_queue.empty()
 
     def test_prompt_command_does_not_enqueue(self) -> None:
-        from tui.commands import CommandKind
+        from equator.commands import CommandKind
         app = _make_app()
         app._cmd_registry.register(
             "tpltest2", "fill 2",
@@ -168,7 +168,7 @@ class TestRouteInputCommandKinds:
         assert app._msg_queue.empty()
 
     def test_script_command_sends_template_to_agent(self) -> None:
-        from tui.commands import CommandKind
+        from equator.commands import CommandKind
         app = _make_app()
         app._cmd_registry.register(
             "runtest1", "run script",
@@ -180,7 +180,7 @@ class TestRouteInputCommandKinds:
         assert app._msg_queue.get_nowait() == "Summarise context"
 
     def test_script_command_adds_to_history(self) -> None:
-        from tui.commands import CommandKind
+        from equator.commands import CommandKind
         app = _make_app()
         app._cmd_registry.register(
             "runtest2", "run 2",

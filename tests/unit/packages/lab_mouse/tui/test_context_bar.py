@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from tui.components.context_bar import ContextBarControl, _BAR_WIDTH, _EMPTY, _FILL
-from tui.state import TuiState
+from equator.components.context_bar import ContextBarControl, _BAR_WIDTH, _EMPTY, _FILL
+from equator.state import TuiState
 
 
 def _fragments(used: int, max_: int) -> list:

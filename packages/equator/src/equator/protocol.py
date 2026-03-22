@@ -8,7 +8,7 @@ visible to the TUI is expressed as a SessionEvent.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 
@@ -25,11 +25,14 @@ class ToolCallEvent:
     """A tool call was dispatched."""
 
     name: str = ""
+    args: dict = field(default_factory=dict)
 
 
 @dataclass
 class ToolResultEvent:
     """The most recent pending tool call completed."""
+
+    result: str = ""
 
 
 @dataclass

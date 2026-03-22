@@ -18,7 +18,7 @@ class TestAgentDeps:
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("AGENT_MODEL", None)
             deps = AgentDeps()
-        assert deps.model == "ollama:qwen3:1.7b"
+        assert deps.model == "ollama:phi4-mini:3.8b"
         assert deps.server_url == "http://127.0.0.1:8000/mcp"
         assert "/no_think" in deps.system_prompt
         assert "helpful assistant" in deps.system_prompt

@@ -19,7 +19,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.styles import Style
 
 from .commands import CommandKind, CommandRegistry, SlashCompleter
-from .components import ContextBarControl, HistoryControl, InputControl, LogsControl, StatusControl
+from .components import ContextBarControl, DetailControl, HelpControl, HistoryControl, InputControl, LogsControl, ModelSelectorControl, StatusControl
 from .key_bindings import build_key_bindings
 from .layout import build_layout
 from .protocol import (
@@ -36,6 +36,18 @@ from .protocol import (
 from .state import ActivePanel, TuiState
 
 _SPINNER_INTERVAL = 0.125
+
+
+def _set_terminal_title(title: str) -> None:
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.kernel32.SetConsoleTitleW(title)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    else:
+        sys.stdout.write(f"\033]0;{title}\007")
+        sys.stdout.flush()
 
 
 class BaseTuiApp:
@@ -59,6 +71,7 @@ class BaseTuiApp:
         self._cmd_registry = cmd_registry
         self._history = HistoryControl(state)
         self._queue: asyncio.Queue[str] = asyncio.Queue()
+        self._token_snapshot: int = 0
 
         completer = SlashCompleter(cmd_registry) if cmd_registry else None
         self._input_ctrl = InputControl(on_submit=self._route_input, completer=completer)
@@ -66,12 +79,33 @@ class BaseTuiApp:
         self._logs_ctrl = LogsControl(state.log_lines, name="logs")
         self._internal_logs_ctrl = LogsControl(state.internal_log_lines, name="internal_logs")
         self._context_bar = ContextBarControl(state)
+        self._model_selector = ModelSelectorControl(state)
+        self._detail_ctrl = DetailControl(self._history)
+        self._help_ctrl = HelpControl(state)
 
         kb = build_key_bindings(
             on_quit=self._handle_quit,
             on_clear=self._handle_clear,
-            on_show_logs=lambda: self._set_panel("main" if self._state.active_panel == "logs" else "logs"),
-            on_show_main=lambda: self._set_panel("main" if self._state.active_panel == "internal_logs" else "internal_logs"),
+            on_show_logs=self._handle_show_logs,
+            on_show_main=self._handle_show_main,
+            on_model_up=self._handle_model_up,
+            on_model_down=self._handle_model_down,
+            on_model_confirm=self._handle_model_confirm,
+            on_model_cancel=self._handle_model_cancel,
+            on_cursor_prev=self._handle_cursor_prev,
+            on_cursor_next=self._handle_cursor_next,
+            on_log_page_back=self._handle_log_page_back,
+            on_log_page_forward=self._handle_log_page_forward,
+            on_detail_toggle=self._handle_detail_toggle,
+            on_detail_exit=self._handle_detail_exit,
+            on_detail_tool_prev=self._handle_detail_tool_prev,
+            on_detail_tool_next=self._handle_detail_tool_next,
+            on_toggle_help=self._handle_toggle_help,
+            model_selector_open=lambda: self._state.show_model_selector,
+            logs_panel_active=lambda: self._state.active_panel in ("logs", "internal_logs"),
+            detail_mode_active=lambda: self._state.detail_mode,
+            input_is_empty=lambda: not self._input_ctrl.buffer.text,
+            cursor_active=lambda: self._history.cursor_active,
         )
         layout = build_layout(
             state=state,
@@ -81,6 +115,9 @@ class BaseTuiApp:
             logs=self._logs_ctrl,
             internal_logs=self._internal_logs_ctrl,
             context_bar=self._context_bar,
+            model_selector=self._model_selector,
+            help_ctrl=self._help_ctrl,
+            detail=self._detail_ctrl,
         )
         output = None
         if sys.platform == "win32" and os.environ.get("TERM"):
@@ -110,17 +147,24 @@ class BaseTuiApp:
         match event:
             case TextDeltaEvent(content=c):
                 self._history.append_delta(c)
-            case ToolCallEvent(name=n):
-                self._history.add_tool_call(n)
-            case ToolResultEvent():
-                self._history.complete_last_tool()
+                return  # _spin redraws at 8 fps during streaming — no per-token invalidate
+            case ToolCallEvent(name=n, args=a):
+                self._history.add_tool_call(n, a)
+            case ToolResultEvent(result=r):
+                self._history.complete_last_tool(r)
             case AgentStartEvent(agent_id=aid):
                 self._history.start_agent_stream(aid)
                 self._state.thinking = True
+                self._token_snapshot = self._state.context_tokens_used
             case AgentEndEvent(output=out):
                 self._history.end_agent_stream(out)
                 self._state.thinking = False
+                if not self._state.detail_mode:
+                    self._history.follow_latest()
             case TokenUsageEvent(total=t):
+                delta = t - self._token_snapshot
+                self._token_snapshot = t
+                self._history.receive_tokens(delta)
                 self._state.context_tokens_used = t
             case ClearedEvent():
                 self._history.clear()
@@ -147,7 +191,7 @@ class BaseTuiApp:
         """Route submitted text: handle slash commands or forward to the agent.
 
         Subclasses may call super()._route_input(text) after intercepting
-        app-specific commands (e.g. /interpret in AgentTuiApp).
+        app-specific commands (e.g. /beetle in AgentTuiApp).
         """
         stripped = text.strip()
         if not stripped:
@@ -156,6 +200,8 @@ class BaseTuiApp:
             self._dispatch_command(stripped)
             return
         self._history.add_user_message(stripped)
+        if not self._state.detail_mode:
+            self._history.follow_latest()
         self._app.invalidate()
         self._send_message(stripped)
 
@@ -222,11 +268,83 @@ class BaseTuiApp:
     # ------------------------------------------------------------------
     # Handlers
 
+    def _handle_show_logs(self) -> None:
+        self._set_panel("main" if self._state.active_panel == "logs" else "logs")
+
+    def _handle_show_main(self) -> None:
+        self._set_panel("main" if self._state.active_panel == "internal_logs" else "internal_logs")
+
+    def _handle_toggle_help(self) -> None:
+        self._state.show_help = not self._state.show_help
+        self._app.invalidate()
+
     def _handle_quit(self) -> None:
         self._app.exit()
 
     def _handle_clear(self) -> None:
         self._session.clear()
+
+    def _handle_model_up(self) -> None:
+        if self._state.available_models:
+            n = len(self._state.available_models)
+            self._state.model_selector_idx = (self._state.model_selector_idx - 1) % n
+            self._app.invalidate()
+
+    def _handle_model_down(self) -> None:
+        if self._state.available_models:
+            n = len(self._state.available_models)
+            self._state.model_selector_idx = (self._state.model_selector_idx + 1) % n
+            self._app.invalidate()
+
+    def _handle_model_cancel(self) -> None:
+        self._state.show_model_selector = False
+        self._app.invalidate()
+
+    def _handle_model_confirm(self) -> None:
+        """Select the highlighted model. Subclasses override to also hot-swap the agent."""
+        if self._state.available_models:
+            self._state.model_name = self._state.available_models[self._state.model_selector_idx]
+        self._state.show_model_selector = False
+        self._app.invalidate()
+
+    def _handle_cursor_prev(self) -> None:
+        self._history.cursor_prev()
+        self._app.invalidate()
+
+    def _handle_cursor_next(self) -> None:
+        self._history.cursor_next()
+        self._app.invalidate()
+
+    def _handle_detail_toggle(self) -> None:
+        if self._state.detail_mode:
+            self._history.exit_detail()
+        else:
+            self._history.enter_detail()
+        self._app.invalidate()
+
+    def _handle_detail_exit(self) -> None:
+        self._history.follow_latest()
+        self._app.invalidate()
+
+    def _handle_detail_tool_prev(self) -> None:
+        self._history.detail_tool_prev()
+        self._app.invalidate()
+
+    def _handle_detail_tool_next(self) -> None:
+        self._history.detail_tool_next()
+        self._app.invalidate()
+
+    def _handle_log_page_back(self) -> None:
+        active = self._state.active_panel
+        ctrl = self._logs_ctrl if active == "logs" else self._internal_logs_ctrl
+        ctrl.page_back()
+        self._app.invalidate()
+
+    def _handle_log_page_forward(self) -> None:
+        active = self._state.active_panel
+        ctrl = self._logs_ctrl if active == "logs" else self._internal_logs_ctrl
+        ctrl.page_forward()
+        self._app.invalidate()
 
     # ------------------------------------------------------------------
     # Coroutines
@@ -250,6 +368,7 @@ class BaseTuiApp:
 
     async def _run_tasks(self, *extra_coros: Coroutine[Any, Any, None]) -> None:
         """Run app + agent_loop + any extra coroutines; cancel all on first exit."""
+        _set_terminal_title(self._state.agent_name)
         tasks = [
             asyncio.create_task(self._app.run_async()),
             asyncio.create_task(self._agent_loop()),

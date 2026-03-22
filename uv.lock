@@ -5,11 +5,11 @@ requires-python = ">=3.13"
 [manifest]
 members = [
     "beetle",
+    "equator",
     "lab-mouse",
     "mcp-server",
     "mcp-shared",
     "mcp-template-workspace",
-    "tui",
 ]
 
 [[package]]
@@ -206,18 +206,18 @@ name = "beetle"
 version = "0.1.0"
 source = { editable = "packages/beetle" }
 dependencies = [
+    { name = "equator" },
     { name = "prompt-toolkit" },
     { name = "pydantic-ai" },
     { name = "python-dotenv" },
-    { name = "tui" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "equator", editable = "packages/equator" },
     { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pydantic-ai", specifier = ">=0.2.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "tui", editable = "packages/tui" },
 ]
 
 [[package]]
@@ -693,6 +693,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/f5/22/900cb125c76b7aaa4
 wheels = [
     { url = "https://files.pythonhosted.org/packages/de/15/545e2b6cf2e3be84bc1ed85613edd75b8aea69807a71c26f4ca6a9258e82/email_validator-2.3.0-py3-none-any.whl", hash = "sha256:80f13f623413e6b197ae73bb10bf4eb0908faf509ad8362c5edeb0be7fd450b4", size = 35604, upload-time = "2025-08-26T13:09:05.858Z" },
 ]
+
+[[package]]
+name = "equator"
+version = "0.1.0"
+source = { editable = "packages/equator" }
+dependencies = [
+    { name = "prompt-toolkit" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "prompt-toolkit", specifier = ">=3.0.51" }]
 
 [[package]]
 name = "eval-type-backport"
@@ -1341,25 +1352,25 @@ version = "0.1.0"
 source = { editable = "packages/lab_mouse" }
 dependencies = [
     { name = "beetle" },
+    { name = "equator" },
     { name = "mcp-shared" },
     { name = "prompt-toolkit" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "python-dotenv" },
     { name = "rich" },
-    { name = "tui" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "beetle", editable = "packages/beetle" },
+    { name = "equator", editable = "packages/equator" },
     { name = "mcp-shared", editable = "packages/mcp_shared" },
     { name = "prompt-toolkit", specifier = ">=3.0.51" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-ai", specifier = ">=0.2.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
-    { name = "tui", editable = "packages/tui" },
 ]
 
 [[package]]
@@ -3074,17 +3085,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/09/a9/6ba95a270c6f1fbcd
 wheels = [
     { url = "https://files.pythonhosted.org/packages/16/e1/3079a9ff9b8e11b846c6ac5c8b5bfb7ff225eee721825310c91b3b50304f/tqdm-4.67.3-py3-none-any.whl", hash = "sha256:ee1e4c0e59148062281c49d80b25b67771a127c85fc9676d3be5f243206826bf", size = 78374, upload-time = "2026-02-03T17:35:50.982Z" },
 ]
-
-[[package]]
-name = "tui"
-version = "0.1.0"
-source = { editable = "packages/tui" }
-dependencies = [
-    { name = "prompt-toolkit" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "prompt-toolkit", specifier = ">=3.0.51" }]
 
 [[package]]
 name = "ty"

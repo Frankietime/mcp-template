@@ -4,9 +4,9 @@ Structure (top → bottom):
     ┌──────────────────────────────┐
     │ Title bar (agent name)       │  ← centered, 1 row
     ├──────────────────────────────┤
-    │ Conversation history         │  ← fills remaining height
+    │ [Help panel] │ Conversation  │  ← help sidebar (Tab) + history fill
     ├──────────────────────────────┤  ← separator (always)
-    │ Raw logs  (,1)               │  ← shown when active_panel == "logs"
+    │ Raw logs  (Ctrl+L)           │  ← shown when active_panel == "logs"
     ├──────────────────────────────┤
     │ Multi-line input (5 rows)    │
     ├──────────────────────────────┤
@@ -30,13 +30,16 @@ from prompt_toolkit.layout.containers import (
     Float,
     FloatContainer,
     HSplit,
+    VSplit,
     Window,
 )
+from prompt_toolkit.layout.margins import ScrollbarMargin
+from prompt_toolkit.widgets import Frame
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.menus import CompletionsMenu
 
-from .components import ContextBarControl, HistoryControl, InputControl, LogsControl, StatusControl
+from .components import ContextBarControl, HelpControl, HistoryControl, InputControl, LogsControl, ModelSelectorControl, StatusControl
 from .state import TuiState
 
 _LINE = "\u2500"  # ─
@@ -62,15 +65,34 @@ def build_layout(
     logs: LogsControl,
     internal_logs: LogsControl,
     context_bar: ContextBarControl,
+    model_selector: ModelSelectorControl,
+    help_ctrl: HelpControl | None = None,
+    **_kwargs,  # absorb legacy kwargs (e.g. detail=) without error
 ) -> Layout:
     """Return a prompt_toolkit ``Layout`` for the agent TUI."""
+    help_panel = ConditionalContainer(
+        content=Window(
+            content=help_ctrl or FormattedTextControl(lambda: []),
+            width=26,
+            style="class:help.bg",
+        ),
+        filter=Condition(lambda: state.show_help),
+    )
+
+    history_window = Window(
+        content=history,
+        wrap_lines=False,
+        height=Dimension(min=3, weight=1),
+        right_margins=[ScrollbarMargin(display_arrows=True)],
+    )
+
     body = HSplit([
         Window(
             content=FormattedTextControl(lambda: _title_fragments(state)),
             height=1,
             align="center",
         ),
-        Window(content=history, wrap_lines=False, height=Dimension(min=3, weight=1)),
+        VSplit([help_panel, history_window]),
         Window(height=1, char="\u2500"),
         ConditionalContainer(
             content=logs.container,
@@ -96,6 +118,19 @@ def build_layout(
                 content=CompletionsMenu(max_height=8, scroll_offset=1),
                 xcursor=True,
                 ycursor=True,
+            ),
+            Float(
+                content=ConditionalContainer(
+                    content=Frame(
+                        body=Window(content=model_selector, height=8),
+                        title=" model ",
+                        style="class:selector.frame",
+                    ),
+                    filter=Condition(lambda: state.show_model_selector),
+                ),
+                right=2,
+                top=2,
+                width=46,
             ),
         ],
     )

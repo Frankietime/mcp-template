@@ -57,7 +57,7 @@ class TestBeetleSession:
         assert received == []
 
     def test_clear_emits_cleared_event(self) -> None:
-        from tui.protocol import ClearedEvent
+        from equator.protocol import ClearedEvent
         session = self._make_session()
         received: list = []
         session.subscribe(received.append)
@@ -79,7 +79,7 @@ class TestBeetleSession:
 
     @pytest.mark.asyncio
     async def test_prompt_emits_agent_start_and_end(self) -> None:
-        from tui.protocol import AgentEndEvent, AgentStartEvent, TextDeltaEvent
+        from equator.protocol import AgentEndEvent, AgentStartEvent, TextDeltaEvent
         session = self._make_session(["[INF] log: hello"])
         received: list = []
         session.subscribe(received.append)
@@ -100,7 +100,7 @@ class TestBeetleSession:
 
     @pytest.mark.asyncio
     async def test_prompt_emits_error_on_exception(self) -> None:
-        from tui.protocol import AgentEndEvent
+        from equator.protocol import AgentEndEvent
         session = self._make_session()
         received: list = []
         session.subscribe(received.append)

@@ -12,7 +12,7 @@ from pathlib import Path
 
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 
-from tui.state import TuiState
+from equator.state import TuiState
 
 _MAX_LINES = 500  # rolling window to avoid unbounded memory growth
 
@@ -96,11 +96,14 @@ def attach_log_handler(
     beetle_handler: logging.Handler | None = None
     beetle_port = os.getenv("BEETLE_PORT")
     if beetle_port:
-        from beetle.log_server import BeetleHandler  # optional dep — only when beetle is running
-        beetle_handler = BeetleHandler(port=int(beetle_port))
-        beetle_handler.setLevel(logging.DEBUG)
-        for name in _NAMED_LOGGERS:
-            logging.getLogger(name).addHandler(beetle_handler)
+        try:
+            from beetle.log_server import BeetleHandler  # optional dep — only when beetle is running
+            beetle_handler = BeetleHandler(port=int(beetle_port))
+            beetle_handler.setLevel(logging.DEBUG)
+            for name in _NAMED_LOGGERS:
+                logging.getLogger(name).addHandler(beetle_handler)
+        except OSError:
+            pass  # beetle not running — skip handler silently
 
     return handler, file_handler, beetle_handler
 

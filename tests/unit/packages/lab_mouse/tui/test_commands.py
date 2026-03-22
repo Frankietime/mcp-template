@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 from prompt_toolkit.completion import CompleteEvent
 from prompt_toolkit.document import Document
 
-from tui.commands import CommandKind, CommandRegistry, PREFIX, SlashCompleter
-from tui.state import TuiState
+from equator.commands import CommandKind, CommandRegistry, PREFIX, SlashCompleter
+from equator.state import TuiState
 
 
 def _app() -> MagicMock:
@@ -18,7 +18,7 @@ def _app() -> MagicMock:
 
 
 def _registry() -> CommandRegistry:
-    from tui.commands import registry
+    from equator.commands import registry
     return registry
 
 
@@ -214,5 +214,5 @@ class TestRegistryExtend:
         assert lab_registry.get("interpret") is not None
 
     def test_base_registry_does_not_have_interpret(self) -> None:
-        from tui.commands import registry as base_registry
+        from equator.commands import registry as base_registry
         assert base_registry.get("interpret") is None

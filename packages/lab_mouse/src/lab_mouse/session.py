@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterable, Callable
 from typing import Any
 
-from tui.protocol import (
+from equator.protocol import (
     AgentEndEvent,
     AgentStartEvent,
     ClearedEvent,

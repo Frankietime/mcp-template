@@ -7,13 +7,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from tui.protocol import (
+from pydantic_ai.messages import ModelMessage
+
+from equator.protocol import (
     AgentEndEvent,
     AgentStartEvent,
     ClearedEvent,
     SessionEvent,
     TextDeltaEvent,
+    TokenUsageEvent,
 )
+
+from equator.log_formatter import format_log_line
 
 from .agent import build_beetle_prompt, create_beetle_agent
 
@@ -25,6 +30,7 @@ class BeetleSession:
         self._log_lines = log_lines
         self._agent = create_beetle_agent()
         self._listeners: list[Callable[[SessionEvent], None]] = []
+        self._history: list[ModelMessage] = []
 
     # ------------------------------------------------------------------
     # SessionProtocol
@@ -35,15 +41,22 @@ class BeetleSession:
         return lambda: self._listeners.remove(listener)
 
     def clear(self) -> None:
-        """Notify subscribers that history was cleared (beetle is stateless)."""
+        """Reset conversation history and notify subscribers."""
+        self._history = []
         self._emit(ClearedEvent())
+
+    def set_model(self, model: str) -> None:
+        """Hot-swap the agent to use a different model."""
+        import os
+        os.environ["BEETLE_MODEL"] = model
+        self._agent = create_beetle_agent()
 
     # ------------------------------------------------------------------
     # Log buffer
 
     def append_line(self, line: str) -> None:
         """Append a live log line and keep the buffer bounded to 1 000 lines."""
-        self._log_lines.append(line)
+        self._log_lines.append(format_log_line(line))
         if len(self._log_lines) > 1_000:
             del self._log_lines[:-1_000]
 
@@ -72,9 +85,13 @@ class BeetleSession:
                 self._log_lines, text, max_lines=max_lines, mode=mode,
                 active_levels=active_levels,
             )
-            async with self._agent.run_stream(beetle_prompt) as result:
+            async with self._agent.run_stream(beetle_prompt, message_history=self._history) as result:
                 async for delta in result.stream_text(delta=True):
                     self._emit(TextDeltaEvent(agent_id="beetle", content=delta))
+                usage = result.usage()
+                if usage.total_tokens is not None:
+                    self._emit(TokenUsageEvent(total=usage.total_tokens))
+                self._history = result.all_messages()
             self._emit(AgentEndEvent(output="", agent_id="beetle"))
         except Exception as e:  # noqa: BLE001
             self._emit(AgentEndEvent(output=f"[error] {e}", agent_id="beetle"))

@@ -9,12 +9,11 @@ Usage:
 
     settings = get_settings()
 
-    if settings.features.tool_template:
-        add_template_tool(mcp)
+    if settings.features.my_feature:
+        add_my_feature_tool(mcp)
 
 Environment variables:
     APP_ENV                         local | dev | staging | prod  (default: local)
-    FEATURES__TOOL_TEMPLATE         true | false                  (default: true)
 """
 
 from __future__ import annotations
@@ -41,13 +40,11 @@ class FeatureFlags(BaseModel):
     """Individual feature toggles.
 
     Each flag maps to an env var via the FEATURES__ prefix:
-        FEATURES__TOOL_TEMPLATE=false  →  features.tool_template = False
+        FEATURES__MY_FEATURE=false  →  features.my_feature = False
 
     All flags default to True so new environments start fully enabled
     and selectively disable only what they need.
     """
-
-    tool_template: bool = True
 
 
 class Settings(BaseSettings):

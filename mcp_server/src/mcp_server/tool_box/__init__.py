@@ -18,7 +18,3 @@ def register_all_tools(mcp: FastMCP, settings: Settings | None = None) -> None:
         if (settings or get_settings()).features.my_feature:
             add_my_feature_tool(mcp)
     """
-    resolved = settings or get_settings()
-    if resolved.features.tool_template:
-        from ._tools_template.tools import add_tool as add_template_tool  # noqa: PLC0415
-        add_template_tool(mcp)

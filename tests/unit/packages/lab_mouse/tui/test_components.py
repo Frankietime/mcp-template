@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from tui.components.history import HistoryControl
-from tui.components.status import StatusControl, _MCP_OK, _MCP_WAIT
-from tui.key_bindings import build_key_bindings
-from tui.state import TuiState
+from equator.components.history import HistoryControl
+from equator.components.status import StatusControl, _MCP_OK, _MCP_WAIT
+from equator.key_bindings import build_key_bindings
+from equator.state import TuiState
 
 
 # ---------------------------------------------------------------------------
@@ -95,8 +95,8 @@ class TestStatusControl:
         return "".join(text for _, text in ctrl._get_fragments())
 
     def test_model_name_shown(self) -> None:
-        state = TuiState(model_name="ollama:qwen3:4b")
-        assert "ollama:qwen3:4b" in self._text(state)
+        state = TuiState(model_name="ollama:phi4-mini:3.8b")
+        assert "ollama:phi4-mini:3.8b" in self._text(state)
 
     def test_mcp_connected_symbol(self) -> None:
         state = TuiState(mcp_connected=True)

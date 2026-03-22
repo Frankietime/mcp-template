@@ -5,9 +5,9 @@ from __future__ import annotations
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.controls import BufferControl
 
-from tui.components import ContextBarControl, HistoryControl, InputControl, LogsControl, StatusControl
-from tui.layout import build_layout
-from tui.state import TuiState
+from equator.components import ContextBarControl, HistoryControl, InputControl, LogsControl, StatusControl
+from equator.layout import build_layout
+from equator.state import TuiState
 
 
 class TestInputControl:
@@ -121,22 +121,22 @@ class TestBuildLayoutFloatContainer:
 
 class TestTitleFragments:
     def test_contains_agent_name(self) -> None:
-        from tui.layout import _title_fragments
-        from tui.state import TuiState
+        from equator.layout import _title_fragments
+        from equator.state import TuiState
         state = TuiState(agent_name="beetle")
         text = "".join(t for _, t in _title_fragments(state))
         assert "beetle" in text
 
     def test_fallback_when_no_agent_name(self) -> None:
-        from tui.layout import _title_fragments
-        from tui.state import TuiState
+        from equator.layout import _title_fragments
+        from equator.state import TuiState
         state = TuiState(agent_name="")
         text = "".join(t for _, t in _title_fragments(state))
         assert "agent" in text
 
     def test_line_characters_present(self) -> None:
-        from tui.layout import _title_fragments
-        from tui.state import TuiState
+        from equator.layout import _title_fragments
+        from equator.state import TuiState
         state = TuiState(agent_name="test")
         text = "".join(t for _, t in _title_fragments(state))
         assert "\u2500" in text

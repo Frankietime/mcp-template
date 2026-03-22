@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass, field
 
-_DEFAULT_MODEL = "ollama:qwen3:1.7b"
+_DEFAULT_MODEL = "ollama:phi4-mini:3.8b"
 
 
 @dataclass

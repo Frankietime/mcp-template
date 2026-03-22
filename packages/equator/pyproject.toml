@@ -1,5 +1,5 @@
 [project]
-name = "tui"
+name = "equator"
 version = "0.1.0"
 description = "Shared prompt_toolkit TUI foundation for agent and beetle"
 requires-python = ">=3.13"

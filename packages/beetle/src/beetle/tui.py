@@ -14,14 +14,16 @@ import sys
 
 from prompt_toolkit.styles import Style
 
-from tui.app import BaseTuiApp
-from tui.commands import registry as cmd_registry
-from tui.state import TuiState
+from equator.app import BaseTuiApp
+from equator.state import TuiState
+
+from .commands import registry as cmd_registry
 
 from .log_server import DEFAULT_PORT, log_server_loop
 from .session import BeetleSession
 
 _AUTO_PROMPT = "Briefly narrate what just happened in the latest logs. 2 sentences maximum."
+
 _DEBOUNCE_SECONDS = 1.5
 
 _STYLE = Style.from_dict({
@@ -44,6 +46,11 @@ _STYLE = Style.from_dict({
     "msg.tool":          "italic #4a4a00",
     "msg.tool.done":     "#4a4a00",
     "msg.cursor":        "#2d7a2d",
+    # Model selector overlay
+    "selector.frame":    "bg:#1a1a2e #e0e0e0",
+    "selector.item":     "#b0b0c0",
+    "selector.selected": "bold #c8ffd4",
+    "selector.empty":    "italic #4a4a5a",
     # Status bar
     "status.model":      "bold #e0e0e0",
     "status.mcp.ok":     "#2d7a2d",
@@ -54,6 +61,27 @@ _STYLE = Style.from_dict({
     "ctx.low":           "#2d7a2d",
     "ctx.mid":           "#c8860a",
     "ctx.high":          "bold #8b0000",
+    # JSON syntax in log panel
+    "log.json":          "ansibrightblack",
+    "log.json.key":      "#7ec8e3",
+    "log.json.val":      "#b5cea8",
+    # Logs pagination indicator
+    "logs.page":         "bold #4a9eff",
+    # Message detail view
+    "msg.selected.gutter": "bold #c0392b",
+    "msg.selected":        "bg:#3d0000 #ffcccc",
+    "detail.bg":           "bg:#1a0008",
+    "detail.header":       "bold #c0392b",
+    "detail.key":          "#8b4444",
+    "detail.val":          "#ffaaaa",
+    "detail.empty":        "italic #4a4a5a",
+    "detail.hint":         "italic #5a3030",
+    # Help sidebar
+    "help.bg":             "bg:#0d0d1a #888899",
+    "help.header":         "bold #c8ffd4",
+    "help.sep":            "#333344",
+    "help.key":            "bold #4a9eff",
+    "help.text":           "#888899",
 })
 
 
@@ -70,7 +98,7 @@ class BeetleTuiApp(BaseTuiApp):
         state = TuiState(
             agent_name="beetle =){",
             log_lines=session._log_lines,
-            model_name=os.getenv("BEETLE_MODEL", "ollama:qwen3"),
+            model_name=os.getenv("BEETLE_MODEL", "ollama:phi4-mini"),
             username="((o))",
         )
         state.mcp_connected = True
@@ -148,6 +176,15 @@ class BeetleTuiApp(BaseTuiApp):
                 )
             finally:
                 spinner_task.cancel()
+
+    def _handle_model_confirm(self) -> None:
+        """Override: hot-swap the agent after updating the model name."""
+        if self._state.available_models:
+            model = self._state.available_models[self._state.model_selector_idx]
+            self._state.model_name = model
+            self._beetle_session.set_model(model)
+        self._state.show_model_selector = False
+        self._app.invalidate()
 
     async def _stdin_loop(self) -> None:
         """Read log lines from stdin (pipe mode) and append to the live buffer."""

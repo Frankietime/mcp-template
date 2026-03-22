@@ -20,7 +20,7 @@ This tutorial walks through everything needed to make `beetle` publicly installa
 1. Log in to [pypi.org](https://pypi.org)
 2. Search for `beetle` and `tui`
 
-> **Warning:** `tui` is extremely generic and almost certainly taken. Check now. If it is, rename the package in `packages/tui/pyproject.toml` to something like `beetle-tui` or `beetle-core` — then update the dependency in beetle's `pyproject.toml` accordingly.
+> **Warning:** `tui` is extremely generic and almost certainly taken. Check now. If it is, rename the package in `packages/tui/pyproject.toml` to something like `equator` or `beetle-core` — then update the dependency in beetle's `pyproject.toml` accordingly.
 
 ---
 
@@ -47,7 +47,7 @@ Repeat on **TestPyPI** for dry-run uploads.
 
 ```toml
 [project]
-name = "beetle-tui"          # rename if "tui" is taken — check Step 1
+name = "equator"          # rename if "tui" is taken — check Step 1
 version = "0.1.0"
 description = "Shared prompt_toolkit TUI foundation for beetle"
 readme = "README.md"
@@ -111,7 +111,7 @@ dependencies = [
     "pydantic-ai>=0.2.0",
     "prompt-toolkit>=3.0.51",
     "python-dotenv>=1.0.0",
-    "beetle-tui>=0.1.0",   # <-- was: tui = { workspace = true }
+    "equator>=0.1.0",   # <-- was: tui = { workspace = true }
 ]
 
 [project.scripts]
@@ -120,16 +120,16 @@ beetle = "beetle.__main__:main"
 [tool.uv]
 package = true
 
-# Keep workspace resolution working locally while the published name is beetle-tui
+# Keep workspace resolution working locally while the published name is equator
 [tool.uv.sources]
-beetle-tui = { workspace = true }
+equator = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
 ```
 
-> The `[tool.uv.sources]` block makes `uv` resolve `beetle-tui` from the local workspace during development, while the published package references it by PyPI name. This is the uv-native way to handle monorepo + public package coexistence — no duplication, no hacks.
+> The `[tool.uv.sources]` block makes `uv` resolve `equator` from the local workspace during development, while the published package references it by PyPI name. This is the uv-native way to handle monorepo + public package coexistence — no duplication, no hacks.
 
 ---
 
@@ -138,7 +138,7 @@ build-backend = "uv_build"
 PyPI requires a README for the long description. Add a minimal one:
 
 ```bash
-echo "# beetle-tui\n\nShared prompt_toolkit TUI foundation for the beetle package." \
+echo "# equator\n\nShared prompt_toolkit TUI foundation for the beetle package." \
   > packages/tui/README.md
 ```
 
@@ -150,13 +150,13 @@ Always validate on TestPyPI before touching the real index.
 
 ```bash
 # Build both packages from the workspace root
-uv build --package beetle-tui
+uv build --package equator
 uv build --package beetle
 
 # Inspect what was built
 ls dist/
-# beetle_tui-0.1.0-py3-none-any.whl
-# beetle_tui-0.1.0.tar.gz
+# equator-0.1.0-py3-none-any.whl
+# equator-0.1.0.tar.gz
 # beetle-0.1.0-py3-none-any.whl
 # beetle-0.1.0.tar.gz
 
@@ -164,7 +164,7 @@ ls dist/
 uv publish \
   --publish-url https://test.pypi.org/legacy/ \
   --token $TEST_PYPI_TOKEN \
-  dist/beetle_tui-*
+  dist/equator-*
 
 # Upload beetle
 uv publish \
@@ -194,7 +194,7 @@ beetle --help
 # tui first
 uv publish \
   --token $PYPI_TOKEN \
-  dist/beetle_tui-*
+  dist/equator-*
 
 # then beetle
 uv publish \
@@ -238,7 +238,7 @@ jobs:
 
       - name: Build packages
         run: |
-          uv build --package beetle-tui
+          uv build --package equator
           uv build --package beetle
 
       - name: Publish to PyPI (trusted publishing)
@@ -255,7 +255,7 @@ Trusted Publishing lets PyPI verify your identity via GitHub Actions OIDC — no
    - **Repository:** `mcp-template`
    - **Workflow:** `publish.yml`
    - **Environment:** leave blank (or set a GitHub Environment)
-3. Repeat for `beetle-tui`
+3. Repeat for `equator`
 
 With this in place, the workflow above publishes without `--token` — the `id-token: write` permission handles auth automatically.
 
@@ -279,7 +279,7 @@ Commitizen is configured in the root `pyproject.toml` to update all `packages/*/
 
 ## Checklist
 
-- [ ] `tui` package name available on PyPI (or renamed to `beetle-tui`)
+- [ ] `tui` package name available on PyPI (or renamed to `equator`)
 - [ ] PyPI API tokens created (or Trusted Publishing configured)
 - [ ] Both `pyproject.toml` files have `readme`, `license`, `authors`, `classifiers`
 - [ ] `tui` dependency in beetle changed from workspace path to versioned PyPI name

@@ -10,8 +10,8 @@ from lab_mouse.tui.log_handler import (
     attach_log_handler,
     detach_log_handler,
 )
-from tui.components.logs import LogsControl, _LogLexer
-from tui.state import TuiState
+from equator.components.logs import LogsControl, _LogLexer
+from equator.state import TuiState
 
 
 # ---------------------------------------------------------------------------

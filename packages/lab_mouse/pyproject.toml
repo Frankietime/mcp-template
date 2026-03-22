@@ -12,7 +12,7 @@ dependencies = [
     "prompt-toolkit>=3.0.51",
     "mcp-shared",
     "beetle",
-    "tui",
+    "equator",
 ]
 
 [project.scripts]
@@ -24,7 +24,7 @@ package = true
 [tool.uv.sources]
 mcp-shared = { workspace = true }
 beetle = { workspace = true }
-tui = { workspace = true }
+equator = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]

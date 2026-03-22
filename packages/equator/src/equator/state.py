@@ -29,3 +29,9 @@ class TuiState:
     context_tokens_used: int = 0
     context_tokens_max: int = 32_768
     active_levels: set[str] = field(default_factory=lambda: {"ERR", "DBG"})
+    show_model_selector: bool = False
+    available_models: list[str] = field(default_factory=list)
+    model_selector_idx: int = 0
+    detail_mode: bool = False
+    detail_tool_idx: int = -1  # -1 = show message summary; ≥0 = tool call index within selected turn
+    show_help: bool = False

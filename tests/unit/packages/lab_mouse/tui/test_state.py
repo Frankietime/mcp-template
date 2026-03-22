@@ -1,6 +1,6 @@
 """Unit tests for tui/state.py."""
 
-from tui.state import TuiState
+from equator.state import TuiState
 
 
 class TestTuiState:
