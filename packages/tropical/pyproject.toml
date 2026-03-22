@@ -1,0 +1,29 @@
+[project]
+name = "tropical"
+version = "0.1.0"
+description = "MCP server inspector TUI — raw protocol inspection companion to equator"
+requires-python = ">=3.13"
+
+dependencies = [
+    "textual[syntax]>=8.1.1",
+    "fastmcp>=2.14.0,<3.0.0",
+    "pydantic>=2.11.7",
+    "typer>=0.24.1",
+    "rich>=14.3.3",
+    "filetype>=1.2.0",
+    "websockets>=16.0",
+    "pyperclip>=1.11.0",
+    "pyyaml>=6.0.3",
+    "aiofiles>=25.1.0",
+    "python-dotenv>=1.2.2",
+]
+
+[project.scripts]
+tropical = "tropical.__main__:app"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"

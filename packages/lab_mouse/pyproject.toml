@@ -1,0 +1,31 @@
+[project]
+name = "lab_mouse"
+version = "0.1.0"
+description = "Pydantic-AI MCP client lab_mouse"
+requires-python = ">=3.13"
+
+dependencies = [
+    "pydantic-ai>=0.2.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "prompt-toolkit>=3.0.51",
+    "mcp-shared",
+    "beetle",
+    "equator",
+]
+
+[project.scripts]
+lab_mouse = "lab_mouse.__main__:main"
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+mcp-shared = { workspace = true }
+beetle = { workspace = true }
+equator = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"

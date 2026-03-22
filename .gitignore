@@ -83,9 +83,13 @@ dmypy.json
 !/src/mcp/resources/**.py
 !/tests/mcp/resources/**.py
 *.log*
+logs/
 
 .vscode/
 
 # Token usage comparison reports (generated at runtime)
 token_usage_comparison.md
+
+# Claude Code local settings
+.claude/settings.local.json
 

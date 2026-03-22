@@ -7,19 +7,19 @@ from pydantic import BaseModel
 class NestedObjectArgument(BaseModel):
     """Example of a nested object argument — prefer flat objects (see FlatObjectArgument)."""
 
-    Id: int
+    item_id: int
 
-    class VendorTree(BaseModel):
-        Id: int
+    class NestedParent(BaseModel):
+        parent_id: int
 
-        class Tree(BaseModel):
-            TreeTypeEnum: Literal["type1", "type2", "type3"]
-            Active: bool
-            TreeNodes: list[dict]
+        class NestedChild(BaseModel):
+            item_type: Literal["type1", "type2", "type3"]
+            active: bool
+            child_items: list[dict]
 
-        tree: Tree
+        nested_child: NestedChild
 
-    vendor_tree: VendorTree
+    nested_parent: NestedParent
 
 
 class FlatObjectArgument(BaseModel):
@@ -29,15 +29,15 @@ class FlatObjectArgument(BaseModel):
     or list of flat objects. Prefer this pattern over deep nesting.
     """
 
-    Id: int
-    TreeId: int
-    TreeTypeEnum: Literal["type1", "type2", "type3"]
-    Active: bool
-    TreeNodes: list[dict]
+    item_id: int
+    nested_id: int
+    item_type: Literal["type1", "type2", "type3"]
+    active: bool
+    child_items: list[dict]
 
 
-class ResourceModel(BaseModel):
-    """Generic output model for a resource.
+class ExampleOutputModel(BaseModel):
+    """Generic output model example.
 
     Replace with your domain-specific output model.
     """

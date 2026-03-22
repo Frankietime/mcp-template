@@ -13,7 +13,10 @@ It also serves as an **onboarding project** and a **reference codebase for codin
 ```
 mcp-template/
 ├── packages/
-│   ├── agent/              # Pydantic-AI terminal chat agent for local testing
+│   ├── equator/            # Prompt-toolkit TUI foundation — base layer for all terminal UIs
+│   ├── beetle/             # Live log interpreter — ingests logs, explains them with a local LLM
+│   ├── tropical/           # MCP protocol inspector — browse tools, resources, and prompts
+│   ├── lab_mouse/          # Pydantic-AI agent REPL — tests whether the LLM uses your tools correctly
 │   └── mcp_shared/         # Shared utilities (response builders, schemas, logging)
 ├── mcp_server/             # Main MCP Server
 │   └── src/mcp_server/
@@ -21,7 +24,6 @@ mcp-template/
 │       ├── instructions/        # Agent instructions (4-layer framework)
 │       ├── tool_box/            # Tool registration + _tools_template reference
 │       └── workflows/           # Multi-step workflow orchestration
-├── src/mcp_workspace/      # Workspace root package
 ├── tests/
 │   ├── unit/               # Unit tests for packages
 │   └── agentic/            # Agentic integration tests (requires running server)
@@ -34,7 +36,6 @@ mcp-template/
 - **`_tools_template`** — A fully annotated reference implementation. Every architectural decision is documented inline. Read this before creating your first tool.
 - **Docstring Registry** — Tool descriptions are versioned separately from logic, enabling A/B testing and prompt engineering without touching business logic.
 - **ToolNames Registry** — All tool names are constants. No inline strings — prevents typos and enables safe IDE refactors.
-- **TOON Format** — Token-optimized serialization for structured data in tool responses (`toon-format` library).
 
 ---
 
@@ -48,7 +49,6 @@ mcp-template/
 ### Install
 
 ```bash
-# Clone and install all workspace packages
 git clone <your-repo-url> mcp-template
 cd mcp-template
 uv sync --all-packages
@@ -78,22 +78,122 @@ curl http://127.0.0.1:8000/healthcheck
 # → OK
 ```
 
-### Debug with MCP Inspector
+---
 
-```bash
-npx @modelcontextprotocol/inspector http://127.0.0.1:8000/mcp/
+## Developer Toolchain
+
+The template ships three tools for iterating on your MCP server without leaving the terminal.
+
+### equator — TUI foundation
+
+The shared prompt-toolkit base that `beetle` and `lab_mouse` are built on. Not a standalone tool — a library. Use it directly if you want to wrap your own pydantic-ai agent in a full terminal interface:
+
+```python
+import equator
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerStreamableHTTP
+
+agent = Agent("openai:gpt-4o", toolsets=[MCPServerStreamableHTTP("http://localhost:8000/mcp")])
+equator.run(agent, name="my-tester")
 ```
 
-Open `http://localhost:6274` in your browser. You should see the `mcp_tool_template` tool registered.
+The lower layers (`protocol.py`, `state.py`, `components/`) have no pydantic-ai dependency — any async backend that implements `SessionProtocol` can drive the TUI. `beetle` uses this to run a completely different session type with the same rendering infrastructure.
 
-### Run the Pydantic-AI Agent
+Custom commands are registered via `CommandRegistry` and passed to `equator.run()`. Three kinds: `ACTION` (executes TUI-side logic), `PROMPT` (pre-fills the input box), `SCRIPT` (sends a fixed message to the agent).
+
+See [`packages/equator/README.md`](packages/equator/README.md) for the full reference.
+
+### beetle — live log interpreter
+
+Wraps any Python process with a full-screen TUI that ingests logs over TCP and interprets them in plain language using a local LLM. No API keys required — runs on [Ollama](https://ollama.com).
 
 ```bash
-# Start server first, then in a second terminal:
-uv run agent
+uv run beetle   # listens on localhost:9020
 ```
 
-This starts an interactive terminal chat REPL connected to your local MCP server.
+Wire your application with the built-in handler:
+
+```python
+from beetle.log_server import BeetleHandler
+import logging
+logging.getLogger().addHandler(BeetleHandler())
+```
+
+Or use the zero-dependency snippet if you don't want `beetle` as a project dependency:
+
+```python
+import json, socket, logging
+
+class BeetleHandler(logging.Handler):
+    def __init__(self, host="localhost", port=9020):
+        super().__init__()
+        self._sock = socket.create_connection((host, port))
+
+    def emit(self, record):
+        import traceback
+        exc = traceback.format_exc() if record.exc_info else None
+        data = json.dumps({
+            "level": record.levelno, "name": record.name,
+            "msg": record.getMessage(), "exc": exc,
+        }) + "\n"
+        try:
+            self._sock.sendall(data.encode())
+        except OSError:
+            self.handleError(record)
+
+logging.getLogger().addHandler(BeetleHandler())
+```
+
+Options:
+
+```bash
+beetle --port 9021          # custom port (default: 9020)
+beetle --logs ./app.log     # pre-load a log file on startup
+beetle --no-server          # disable TCP listener (static analysis)
+cat app.log | beetle        # pipe mode
+
+BEETLE_MODEL=ollama:qwen3:4b   # interpreter model (default: ollama:phi4-mini:3.8b)
+```
+
+Recommended models: `phi4-mini:3.8b` (default), `qwen3:4b` (recommended), `qwen3:1.7b` (low memory). Pull with `ollama pull <tag>`.
+
+See [`packages/beetle/README.md`](packages/beetle/README.md) for the full reference.
+
+### tropical — MCP protocol inspector
+
+A full-screen TUI for raw MCP protocol inspection. Browse tools, resources, and prompts; execute requests; view responses with syntax highlighting and markdown rendering. No API keys required.
+
+```bash
+uv run tropical                                                           # standalone
+uv run tropical connect-http http://localhost:8000/mcp                    # connect directly
+uv run tropical connect-http http://localhost:8000/mcp --header "Authorization=Bearer <token>"
+```
+
+Supports STDIO, HTTP (Streamable), and TCP transports. Server configs persist in `~/.config/tropical/servers.yaml`.
+
+### lab_mouse — agent REPL
+
+An interactive terminal agent connected to your MCP server. Tests whether the LLM actually uses your tools correctly — not just whether the tools return the right data.
+
+```bash
+uv run mcp_server   # Terminal 1
+uv run lab_mouse    # Terminal 2
+```
+
+Shows streaming responses, live tool call args and results, log monitoring, and an extensible slash-command system.
+
+| Command | Description |
+|---|---|
+| `/tropical` | Open tropical inspector, auto-connected to the active MCP server |
+| `/tropical <url>` | Open tropical connected to a specific URL |
+| `/beetle` | Launch beetle in a new terminal |
+| `/tools` | List tools from connected MCP servers |
+| `/model <name>` | Switch model inline |
+| `/logs [levels]` | Filter log levels — e.g. `/logs err crt`, `/logs all` |
+| `/help` | Show all commands and key bindings |
+| `/q` | Quit |
+
+When `/tropical` is invoked, tropical opens pre-connected to the same server the agent is using, including any configured auth headers — no manual configuration required.
 
 ---
 
@@ -103,7 +203,8 @@ This starts an interactive terminal chat REPL connected to your local MCP server
 uv run pytest
 ```
 
-Agentic tests (require a running server) are skipped by default. To run them:
+Agentic tests require a running server:
+
 ```bash
 # Terminal 1: start the server
 uv run mcp_server
@@ -111,6 +212,8 @@ uv run mcp_server
 # Terminal 2: run agentic tests
 uv run pytest tests/agentic/ -v
 ```
+
+Coverage threshold: 80% (enforced in CI).
 
 ---
 
@@ -204,3 +307,5 @@ Add to `.vscode/launch.json`:
 | [docs/WORKSPACES.md](docs/WORKSPACES.md) | UV workspace mechanics and package management |
 | [docs/PACKAGES.md](docs/PACKAGES.md) | Creating and consuming workspace packages |
 | [docs/PYTHON.md](docs/PYTHON.md) | Python and UV external resources |
+| [packages/equator/README.md](packages/equator/README.md) | equator full reference |
+| [packages/beetle/README.md](packages/beetle/README.md) | beetle full reference |
