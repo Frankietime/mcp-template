@@ -18,7 +18,7 @@ from equator.protocol import (
 )
 
 from .agent import create_agent
-from .deps import AgentDeps
+from .deps import AgentDeps, build_system_prompt
 from .tui.stream_handler import map_pydantic_event
 
 
@@ -65,12 +65,21 @@ class AgentSession:
         self._pydantic_messages.clear()
         self._emit(ClearedEvent())
 
+    def set_model(self, model: str) -> None:
+        """Hot-swap the model used for subsequent prompts."""
+        self._deps.model = model
+        self._deps.system_prompt = build_system_prompt(model)
+
     # ------------------------------------------------------------------
     # Agent interaction
 
     async def prompt(self, text: str) -> None:
         """Run *text* through the agent and emit events as they arrive."""
         self._emit(AgentStartEvent())
+        # Qwen3 thinking mode must be suppressed via the user message, not the
+        # system prompt.  Prefix every turn so the model skips CoT reasoning.
+        if "qwen3" in self._deps.model.lower():
+            text = f"/no_think {text}"
 
         async def _event_handler(_ctx: Any, events: AsyncIterable[Any]) -> None:
             async for event in events:

@@ -26,62 +26,74 @@ _AUTO_PROMPT = "Briefly narrate what just happened in the latest logs. 2 sentenc
 
 _DEBOUNCE_SECONDS = 1.5
 
+# Crimson gradient palette (dark → light):
+#   #0c0003  near-black crimson  — chat window + input bg (darkest)
+#   #1a0008  very dark crimson   — secondary panels (detail, help)
+#   #2d0010  dark crimson        — selector frame, gutters
+#   #5c1020  deep crimson        — muted borders, hints
+#   #8b1a2a  medium crimson      — secondary text, log.dbg
+#   #c0392b  vivid crimson       — agent gutter, status ok, cursor
+#   #dc143c  pure crimson        — titles, active selections
+#   #ff4d6a  bright crimson      — agent text, emphasis
+#   #ffaabb  pale rose           — light readout, detail.val
+
 _STYLE = Style.from_dict({
     # Title bar
-    "title":             "bold #ffffff",
-    # Input area
-    "input-area":        "bg:#1a1a2e #e0e0e0",
-    # Log level tags (used by LogsControl's _LogLexer)
-    "log.dbg":           "ansibrightblack",
-    "log.inf":           "#4a9eff",
-    "log.wrn":           "#c8860a",
-    "log.err":           "#c0392b",
-    "log.crt":           "bold #8b0000",
-    # Conversation history — left-border gutter pattern
-    "msg.gutter.user":   "#555566",
-    "msg.user":          "#b0b0c0",
-    "msg.gutter.agent":  "#2d7a2d",
-    "msg.agent":         "#c8ffd4",
-    "msg.agent.bold":    "bold #ffffff",
-    "msg.tool":          "italic #4a4a00",
-    "msg.tool.done":     "#4a4a00",
-    "msg.cursor":        "#2d7a2d",
+    "title":             "bold #dc143c",
+    # Input area — darkest surface
+    "input-area":        "bg:#0c0003 #8b1a2a",
+    # Log level tags
+    "log.dbg":           "#5c1020",
+    "log.inf":           "#c0392b",
+    "log.wrn":           "#d4622a",
+    "log.err":           "#ff4d6a",
+    "log.crt":           "bold #ff0033",
+    # Conversation history — darkest bg via msg colors; gutter in crimson gradient
+    "msg.gutter.user":   "#2d0010",
+    "msg.user":          "#8b1a2a",
+    "msg.gutter.agent":  "#c0392b",
+    "msg.agent":         "#ff4d6a",
+    "msg.agent.bold":    "bold #ffaabb",
+    "msg.tool":          "italic #5c1020",
+    "msg.tool.done":     "#8b1a2a",
+    "msg.cursor":        "#dc143c",
     # Model selector overlay
-    "selector.frame":    "bg:#1a1a2e #e0e0e0",
-    "selector.item":     "#b0b0c0",
-    "selector.selected": "bold #c8ffd4",
-    "selector.empty":    "italic #4a4a5a",
+    "selector.frame":    "bg:#2d0010 #c0392b",
+    "selector.item":     "#8b1a2a",
+    "selector.selected": "bold #ff4d6a",
+    "selector.empty":    "italic #5c1020",
+    "selector.favorite": "bold #ffd700",
     # Status bar
-    "status.model":      "bold #e0e0e0",
-    "status.mcp.ok":     "#2d7a2d",
-    "status.mcp.wait":   "#c8860a",
-    "status.thinking":   "italic #2d7a2d",
-    "status.hints":      "#4a4a5a",
+    "status.model":      "bold #ff4d6a",
+    "status.mcp.ok":     "#c0392b",
+    "status.mcp.wait":   "#d4622a",
+    "status.thinking":   "italic #dc143c",
+    "status.hints":      "#5c1020",
     # Context window bar
-    "ctx.low":           "#2d7a2d",
-    "ctx.mid":           "#c8860a",
-    "ctx.high":          "bold #8b0000",
+    "ctx.low":           "#8b1a2a",
+    "ctx.mid":           "#c0392b",
+    "ctx.high":          "bold #ff4d6a",
     # JSON syntax in log panel
-    "log.json":          "ansibrightblack",
-    "log.json.key":      "#7ec8e3",
-    "log.json.val":      "#b5cea8",
+    "log.json":          "#5c1020",
+    "log.json.key":      "#c0392b",
+    "log.json.val":      "#ff4d6a",
     # Logs pagination indicator
-    "logs.page":         "bold #4a9eff",
-    # Message detail view
-    "msg.selected.gutter": "bold #c0392b",
-    "msg.selected":        "bg:#3d0000 #ffcccc",
+    "logs.page":         "bold #dc143c",
+    # Message detail view — second darkest surface
+    "msg.selected.gutter": "bold #dc143c",
+    "msg.selected":        "bg:#2d0010 #ffaabb",
     "detail.bg":           "bg:#1a0008",
-    "detail.header":       "bold #c0392b",
-    "detail.key":          "#8b4444",
-    "detail.val":          "#ffaaaa",
-    "detail.empty":        "italic #4a4a5a",
-    "detail.hint":         "italic #5a3030",
-    # Help sidebar
-    "help.bg":             "bg:#0d0d1a #888899",
-    "help.header":         "bold #c8ffd4",
-    "help.sep":            "#333344",
-    "help.key":            "bold #4a9eff",
-    "help.text":           "#888899",
+    "detail.header":       "bold #dc143c",
+    "detail.key":          "#8b1a2a",
+    "detail.val":          "#ffaabb",
+    "detail.empty":        "italic #5c1020",
+    "detail.hint":         "italic #2d0010",
+    # Help sidebar — second darkest surface
+    "help.bg":             "bg:#1a0008 #5c1020",
+    "help.header":         "bold #dc143c",
+    "help.sep":            "#2d0010",
+    "help.key":            "bold #c0392b",
+    "help.text":           "#5c1020",
 })
 
 
@@ -96,7 +108,7 @@ class BeetleTuiApp(BaseTuiApp):
         port: int | None = DEFAULT_PORT,
     ) -> None:
         state = TuiState(
-            agent_name="beetle =){",
+            agent_name="beetle (~){",
             log_lines=session._log_lines,
             model_name=os.getenv("BEETLE_MODEL", "ollama:phi4-mini:3.8b"),
             username="((o))",

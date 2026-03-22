@@ -191,20 +191,20 @@ class TestHistoryInspect:
 
     def test_tool_call_args_stored(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         assert ctrl._messages[0].tool_args == {"query": "Python"}
 
     def test_tool_call_result_stored_after_complete(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         ctrl.complete_last_tool("Found 2 matches")
         assert ctrl._messages[0].tool_result == "Found 2 matches"
         assert ctrl._messages[0].complete is True
 
     def test_multiple_tool_calls_stored_independently(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_list_sections", {})
-        ctrl.add_tool_call("portfolio_get_section", {"section_name": "Skills"})
+        ctrl.add_tool_call("md_list_sections", {})
+        ctrl.add_tool_call("md_list_sections", {"section_name": "Skills"})
         ctrl.complete_last_tool("Skills content")
         # first tool still incomplete
         assert ctrl._messages[0].complete is False
@@ -213,13 +213,13 @@ class TestHistoryInspect:
 
     def test_tool_messages_use_tool_style(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_search")
+        ctrl.add_tool_call("md_query")
         styles = self._styles(ctrl)
         assert any("msg.tool" in s for s in styles)
 
     def test_completed_tool_uses_done_style(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_search")
+        ctrl.add_tool_call("md_query")
         ctrl.complete_last_tool("result")
         styles = self._styles(ctrl)
         assert any("msg.tool.done" in s for s in styles)
@@ -257,7 +257,7 @@ class TestHistoryInspect:
     def test_inline_detail_shown_when_cursor_active(self) -> None:
         ctrl = self._ctrl()
         ctrl.add_user_message("hello")
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         ctrl.complete_last_tool("result")
         ctrl.cursor_prev()  # activate cursor on tool message
         text = self._text(ctrl)
@@ -265,15 +265,15 @@ class TestHistoryInspect:
 
     def test_inline_detail_compact_shows_tool_name(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         ctrl.complete_last_tool("2 matches")
         ctrl.cursor_prev()  # compact mode (detail_mode=False)
         text = self._text(ctrl)
-        assert "portfolio_search" in text
+        assert "md_query" in text
 
     def test_inline_detail_compact_shows_complete_checkmark(self) -> None:
         ctrl = self._ctrl()
-        ctrl.add_tool_call("portfolio_search")
+        ctrl.add_tool_call("md_query")
         ctrl.complete_last_tool("done")
         ctrl.cursor_prev()
         text = self._text(ctrl)
@@ -284,7 +284,7 @@ class TestHistoryInspect:
     def test_inline_detail_expanded_shows_args(self) -> None:
         state = TuiState()
         ctrl = HistoryControl(state)
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         ctrl.complete_last_tool("2 matches")
         ctrl.enter_detail()  # F2 equivalent
         text = self._text(ctrl)
@@ -293,7 +293,7 @@ class TestHistoryInspect:
     def test_inline_detail_expanded_shows_result(self) -> None:
         state = TuiState()
         ctrl = HistoryControl(state)
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         ctrl.complete_last_tool("2 matches found")
         ctrl.enter_detail()
         text = self._text(ctrl)
@@ -302,7 +302,7 @@ class TestHistoryInspect:
     def test_inline_detail_expanded_pending_tool_shows_pending(self) -> None:
         state = TuiState()
         ctrl = HistoryControl(state)
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         # do NOT complete — still pending
         ctrl.enter_detail()
         text = self._text(ctrl)
@@ -314,11 +314,11 @@ class TestHistoryInspect:
         state = TuiState()
         ctrl = HistoryControl(state)
         ctrl.add_user_message("list and search")
-        ctrl.add_tool_call("portfolio_list_sections", {})
+        ctrl.add_tool_call("md_list_sections", {})
         ctrl.complete_last_tool("sections")
-        ctrl.add_tool_call("portfolio_search", {"query": "Python"})
+        ctrl.add_tool_call("md_query", {"query": "Python"})
         ctrl.complete_last_tool("matches")
-        ctrl.add_tool_call("portfolio_get_section", {"section_name": "Skills"})
+        ctrl.add_tool_call("md_list_sections", {"section_name": "Skills"})
         ctrl.complete_last_tool("skills content")
         ctrl.start_agent_stream()
         ctrl.end_agent_stream("done")
@@ -329,15 +329,15 @@ class TestHistoryInspect:
         ctrl.detail_tool_next()
         tool = ctrl.selected_tool()
         assert tool is not None
-        assert "portfolio_list_sections" in tool.content
+        assert "md_list_sections" in tool.content
 
     def test_detail_tool_prev_wraps_around(self) -> None:
         state = TuiState()
         ctrl = HistoryControl(state)
         ctrl.add_user_message("q")
-        ctrl.add_tool_call("portfolio_list_sections", {})
+        ctrl.add_tool_call("md_list_sections", {})
         ctrl.complete_last_tool("s")
-        ctrl.add_tool_call("portfolio_search", {"query": "x"})
+        ctrl.add_tool_call("md_query", {"query": "x"})
         ctrl.complete_last_tool("r")
         ctrl.start_agent_stream()
         ctrl.end_agent_stream("done")
@@ -347,16 +347,16 @@ class TestHistoryInspect:
         ctrl.detail_tool_prev()   # wraps to last tool
         tool = ctrl.selected_tool()
         assert tool is not None
-        assert "portfolio_search" in tool.content
+        assert "md_query" in tool.content
 
     def test_all_tools_in_turn_visible_when_cycling(self) -> None:
         state = TuiState()
         ctrl = HistoryControl(state)
         ctrl.add_user_message("q")
         tool_names = [
-            "portfolio_get_summary",
-            "portfolio_list_sections",
-            "portfolio_get_section",
+            "md_query",
+            "md_list_sections",
+            "md_list_sections",
         ]
         for name in tool_names:
             ctrl.add_tool_call(name, {})
@@ -382,7 +382,7 @@ class TestHistoryInspect:
     def test_build_turns_groups_tools_with_user_and_agent(self) -> None:
         ctrl = self._ctrl()
         ctrl.add_user_message("q")
-        ctrl.add_tool_call("portfolio_search", {})
+        ctrl.add_tool_call("md_query", {})
         ctrl.complete_last_tool("r")
         ctrl.start_agent_stream()
         ctrl.end_agent_stream("done")
@@ -395,11 +395,11 @@ class TestHistoryInspect:
     def test_selected_turn_tools_returns_tools_for_selected_message(self) -> None:
         ctrl = self._ctrl()
         ctrl.add_user_message("q")
-        ctrl.add_tool_call("portfolio_search", {})
+        ctrl.add_tool_call("md_query", {})
         ctrl.complete_last_tool("r")
         ctrl.start_agent_stream()
         ctrl.end_agent_stream("done")
         ctrl.cursor_prev()   # select agent message
         tools = ctrl._selected_turn_tools()
         assert len(tools) == 1
-        assert "portfolio_search" in tools[0].content
+        assert "md_query" in tools[0].content

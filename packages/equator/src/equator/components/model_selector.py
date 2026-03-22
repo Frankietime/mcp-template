@@ -24,8 +24,11 @@ class ModelSelectorControl(FormattedTextControl):
             return [("class:selector.empty", "  fetching models…\n")]
         frags: StyleAndTextTuples = []
         for i, model in enumerate(self._state.available_models):
-            if i == self._state.model_selector_idx:
-                frags.append(("class:selector.selected", f" ▸ {model}\n"))
+            is_fav = model in self._state.favorite_models
+            selected = i == self._state.model_selector_idx
+            star = ("class:selector.favorite", "★") if is_fav else ("", " ")
+            if selected:
+                frags += [("class:selector.selected", " ▸ "), star, ("class:selector.selected", f" {model}\n")]
             else:
-                frags.append(("class:selector.item", f"   {model}\n"))
+                frags += [("class:selector.item", "   "), star, ("class:selector.item", f" {model}\n")]
         return frags

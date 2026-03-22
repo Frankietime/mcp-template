@@ -19,6 +19,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.document import Document
 from prompt_toolkit.styles import Style
 
+from . import favorites as _favorites
 from .commands import CommandKind, CommandRegistry, SlashCompleter
 from .components import ContextBarControl, DetailControl, HelpControl, HistoryControl, InputControl, LogsControl, ModelSelectorControl, StatusControl
 from .key_bindings import build_key_bindings
@@ -70,6 +71,7 @@ class BaseTuiApp:
         self._session = session
         self._state = state
         self._cmd_registry = cmd_registry
+        self._state.favorite_models = _favorites.load()
         self._history = HistoryControl(state)
         self._queue: asyncio.Queue[str] = asyncio.Queue()
         self._token_snapshot: int = 0
@@ -94,6 +96,7 @@ class BaseTuiApp:
             on_model_down=self._handle_model_down,
             on_model_confirm=self._handle_model_confirm,
             on_model_cancel=self._handle_model_cancel,
+            on_model_favorite=self._handle_model_favorite,
             on_cursor_prev=self._handle_cursor_prev,
             on_cursor_next=self._handle_cursor_next,
             on_log_page_back=self._handle_log_page_back,
@@ -149,7 +152,6 @@ class BaseTuiApp:
         match event:
             case TextDeltaEvent(content=c):
                 self._history.append_delta(c)
-                return  # _spin redraws at 8 fps during streaming — no per-token invalidate
             case ToolCallEvent(name=n, args=a):
                 self._history.add_tool_call(n, a)
             case ToolResultEvent(result=r):
@@ -343,6 +345,19 @@ class BaseTuiApp:
         if self._state.available_models:
             self._state.model_name = self._state.available_models[self._state.model_selector_idx]
         self._state.show_model_selector = False
+        self._app.invalidate()
+
+    def _handle_model_favorite(self) -> None:
+        """Toggle the favourite flag on the currently highlighted model and persist."""
+        if not self._state.available_models:
+            return
+        model = self._state.available_models[self._state.model_selector_idx]
+        favs = self._state.favorite_models
+        if model in favs:
+            favs.discard(model)
+        else:
+            favs.add(model)
+        _favorites.save(favs)
         self._app.invalidate()
 
     def _handle_cursor_prev(self) -> None:

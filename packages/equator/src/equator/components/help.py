@@ -14,12 +14,13 @@ _BINDINGS: list[tuple[str, str]] = [
     ("Ctrl+X",  "quit"),
     ("",        ""),
     ("↑ ↓",    "navigate msgs"),
-    ("← →",    "cycle tool calls"),
+    ("← →",    "tool calls / page logs"),
     ("Esc",     "clear cursor"),
     ("",        ""),
     ("/help",   "commands & keys"),
     ("/logs",   "filter log levels"),
     ("/model",  "change model"),
+    ("*",       "★ favourite model"),
     ("/q",      "quit"),
 ]
 

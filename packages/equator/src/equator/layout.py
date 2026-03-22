@@ -5,6 +5,7 @@ Structure (top → bottom):
     │ Title bar (agent name)       │  ← centered, 1 row
     ├──────────────────────────────┤
     │ [Help panel] │ Conversation  │  ← help sidebar (Tab) + history fill
+    │              │  [Inspector]  │  ← inline below selected message (F2)
     ├──────────────────────────────┤  ← separator (always)
     │ Raw logs  (Ctrl+L)           │  ← shown when active_panel == "logs"
     ├──────────────────────────────┤
@@ -67,7 +68,7 @@ def build_layout(
     context_bar: ContextBarControl,
     model_selector: ModelSelectorControl,
     help_ctrl: HelpControl | None = None,
-    **_kwargs,  # absorb legacy kwargs (e.g. detail=) without error
+    detail: object | None = None,  # unused — inspector is rendered inline in history
 ) -> Layout:
     """Return a prompt_toolkit ``Layout`` for the agent TUI."""
     help_panel = ConditionalContainer(

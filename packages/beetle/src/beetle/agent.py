@@ -80,7 +80,7 @@ _MODE_INSTRUCTIONS: dict[str, str] = {
     "realtime": (
         "Respond in ONE sentence, max 15 words. No line breaks. "
         "Use *asterisks* only around the single most important term. "
-        "If nothing anomalous occurred, respond with a single `-` and nothing else."
+        "If nothing anomalous occurred, respond with exactly: All clear."
     ),
     "explain": (
         "Answer the user's question directly. Ground every claim in the logs. "
