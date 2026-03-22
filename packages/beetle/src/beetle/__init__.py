@@ -1,13 +1,20 @@
 """Beetle (=){) — logs interpreter agent."""
 
 from .agent import BEETLE_SYMBOL, build_beetle_prompt, create_beetle_agent
-from .app import BeetleApp, DEFAULT_PROMPT, colorise
+from .log_filter import NoiseRuleEntry, filter_for_context, is_noise
+from .log_server import BeetleHandler, DEFAULT_PORT
+from .session import BeetleSession
+from .tui import BeetleTuiApp
 
 __all__ = [
     "BEETLE_SYMBOL",
     "build_beetle_prompt",
     "create_beetle_agent",
-    "BeetleApp",
-    "DEFAULT_PROMPT",
-    "colorise",
+    "BeetleHandler",
+    "BeetleSession",
+    "BeetleTuiApp",
+    "DEFAULT_PORT",
+    "is_noise",
+    "filter_for_context",
+    "NoiseRuleEntry",
 ]

@@ -1,4 +1,4 @@
-"""Unit tests for beetle/__main__.py (standalone chatbot app)."""
+"""Unit tests for beetle/__main__.py, beetle/session.py, and beetle/tui.py."""
 
 from __future__ import annotations
 
@@ -8,140 +8,156 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from beetle.__main__ import main
-from beetle.app import BeetleApp, DEFAULT_PROMPT, colorise
+from beetle.session import BeetleSession
+from beetle.tui import BeetleTuiApp
 
 
-class TestColorise:
-    def test_usr_line_renders_cyan(self) -> None:
-        result = colorise("[USR] why is it slow?")
-        assert "\033[36m" in result
-        assert "why is it slow?" in result
-
-    def test_btl_line_renders_green_with_symbol(self) -> None:
-        result = colorise("[BTL] all good")
-        assert "\033[32m" in result
-        assert "=){" in result
-        assert "all good" in result
-
-    def test_btl_err_line_renders_crimson(self) -> None:
-        result = colorise("[BTL_ERR] connection refused")
-        assert "\033[38;5;88m" in result
-        assert "connection refused" in result
-
-    def test_plain_line_is_unchanged(self) -> None:
-        assert colorise("no tag here") == "no tag here"
-
-    def test_unknown_tag_is_unchanged(self) -> None:
-        assert colorise("[XYZ] something") == "[XYZ] something"
+# ---------------------------------------------------------------------------
+# BeetleSession
+# ---------------------------------------------------------------------------
 
 
-class TestBeetleAppInit:
-    def test_empty_log_lines_accepted(self) -> None:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            app = BeetleApp([])
-        assert app._log_lines == []
+def _make_stream_mock(deltas: list[str]):
+    """Return an async context manager mock whose stream_text yields *deltas*."""
+    mock_stream = MagicMock()
 
-    def test_log_lines_stored(self) -> None:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            app = BeetleApp(["[INF] foo: bar"])
-        assert app._log_lines == ["[INF] foo: bar"]
+    async def _aenter(_):
+        return mock_stream
 
-    def test_conv_lines_empty_on_start(self) -> None:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            app = BeetleApp([])
-        assert app._conv_lines == []
+    async def _aexit(*_):
+        pass
+
+    async def _stream_text(delta: bool = False):
+        for chunk in deltas:
+            yield chunk
+
+    mock_stream.__aenter__ = _aenter
+    mock_stream.__aexit__ = _aexit
+    mock_stream.stream_text = _stream_text
+    return mock_stream
+
+
+class TestBeetleSession:
+    def _make_session(self, log_lines: list[str] | None = None) -> BeetleSession:
+        with patch("beetle.session.create_beetle_agent"):
+            return BeetleSession(log_lines or [])
+
+    def test_subscribe_returns_unsubscribe(self) -> None:
+        session = self._make_session()
+        received: list = []
+        unsubscribe = session.subscribe(received.append)
+        assert callable(unsubscribe)
+
+    def test_unsubscribe_removes_listener(self) -> None:
+        session = self._make_session()
+        received: list = []
+        unsubscribe = session.subscribe(received.append)
+        unsubscribe()
+        session.clear()  # would emit ClearedEvent
+        assert received == []
+
+    def test_clear_emits_cleared_event(self) -> None:
+        from tui.protocol import ClearedEvent
+        session = self._make_session()
+        received: list = []
+        session.subscribe(received.append)
+        session.clear()
+        assert len(received) == 1
+        assert isinstance(received[0], ClearedEvent)
+
+    def test_append_line_adds_to_buffer(self) -> None:
+        session = self._make_session()
+        session.append_line("hello")
+        assert session._log_lines == ["hello"]
+
+    def test_append_line_caps_at_1000(self) -> None:
+        session = self._make_session()
+        for i in range(1100):
+            session.append_line(f"line {i}")
+        assert len(session._log_lines) == 1000
+        assert session._log_lines[-1] == "line 1099"
+
+    @pytest.mark.asyncio
+    async def test_prompt_emits_agent_start_and_end(self) -> None:
+        from tui.protocol import AgentEndEvent, AgentStartEvent, TextDeltaEvent
+        session = self._make_session(["[INF] log: hello"])
+        received: list = []
+        session.subscribe(received.append)
+
+        session._agent.run_stream = MagicMock(
+            return_value=_make_stream_mock(["beetle ", "response"])
+        )
+
+        await session.prompt("what happened?")
+
+        event_types = [type(e).__name__ for e in received]
+        assert "AgentStartEvent" in event_types
+        assert "AgentEndEvent" in event_types
+        deltas = [e for e in received if isinstance(e, TextDeltaEvent)]
+        assert "".join(d.content for d in deltas) == "beetle response"
+        end = next(e for e in received if isinstance(e, AgentEndEvent))
+        assert end.agent_id == "beetle"
+
+    @pytest.mark.asyncio
+    async def test_prompt_emits_error_on_exception(self) -> None:
+        from tui.protocol import AgentEndEvent
+        session = self._make_session()
+        received: list = []
+        session.subscribe(received.append)
+
+        bad_stream = MagicMock()
+        bad_stream.__aenter__ = AsyncMock(side_effect=RuntimeError("boom"))
+        bad_stream.__aexit__ = AsyncMock(return_value=None)
+        session._agent.run_stream = MagicMock(return_value=bad_stream)
+
+        await session.prompt("test")
+
+        end = next(e for e in received if isinstance(e, AgentEndEvent))
+        assert "[error]" in end.output
+
+
+# ---------------------------------------------------------------------------
+# BeetleTuiApp
+# ---------------------------------------------------------------------------
+
+
+class TestBeetleTuiAppInit:
+    def _make_app(self, log_lines: list[str] | None = None) -> BeetleTuiApp:
+        with patch("beetle.session.create_beetle_agent"):
+            session = BeetleSession(log_lines or [])
+        with patch("tui.app.Application"):
+            return BeetleTuiApp(session, port=None)
 
     def test_queue_empty_on_start(self) -> None:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            app = BeetleApp([])
+        app = self._make_app()
         assert app._queue.empty()
 
-
-class TestBeetleAppAccept:
-    def _make_app(self) -> BeetleApp:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            return BeetleApp([])
-
-    def test_accept_enqueues_text(self) -> None:
+    def test_state_username_is_user_symbol(self) -> None:
         app = self._make_app()
-        buf = MagicMock()
-        buf.text = "why is it slow?"
-        app._accept(buf)
+        assert app._state.username == "((o))"
+
+    def test_route_input_enqueues_text(self) -> None:
+        app = self._make_app()
+        app._route_input("why is it slow?")
         assert not app._queue.empty()
-        assert app._queue.get_nowait() == "why is it slow?"
+        text, *_ = app._queue.get_nowait()
+        assert text == "why is it slow?"
 
-    def test_accept_appends_usr_line(self) -> None:
+    def test_route_input_whitespace_only_skips(self) -> None:
         app = self._make_app()
-        buf = MagicMock()
-        buf.text = "my question"
-        app._accept(buf)
-        assert any("[USR] my question" in line for line in app._conv_lines)
-
-    def test_accept_whitespace_only_skips(self) -> None:
-        app = self._make_app()
-        buf = MagicMock()
-        buf.text = "   "
-        app._accept(buf)
-        assert app._queue.empty()
-        assert app._conv_lines == []
-
-    def test_accept_resets_buffer(self) -> None:
-        app = self._make_app()
-        buf = MagicMock()
-        buf.text = "hello"
-        app._accept(buf)
-        buf.reset.assert_called_once()
-
-
-class TestBeetleAppRun:
-    def _make_app(self, log_lines=None) -> BeetleApp:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            return BeetleApp(log_lines or [])
-
-    def test_run_with_logs_enqueues_default_prompt(self) -> None:
-        app = self._make_app(["[ERR] something"])
-        # Peek at queue state before running full app
-        app._app.run_async = AsyncMock(return_value=None)
-        # Stub agent loop so it doesn't block
-        async def _drain():
-            await asyncio.sleep(0)
-        with patch.object(app, "_agent_loop", side_effect=_drain):
-            asyncio.run(app.run())
-        # The default prompt was enqueued during run()
-        # (queue may be drained by stub, so we verify indirectly via conv_lines)
-
-    def test_run_without_logs_does_not_enqueue_prompt(self) -> None:
-        app = self._make_app([])
-        # Before run(), queue is empty; with no logs it stays empty
+        app._route_input("   ")
         assert app._queue.empty()
 
-
-class TestBeetleAppRefresh:
-    def _make_app(self) -> BeetleApp:
-        with patch("beetle.app.Application") as MockApp:
-            MockApp.return_value = MagicMock()
-            return BeetleApp([])
-
-    def test_refresh_sets_history_buffer_text(self) -> None:
+    def test_route_input_adds_user_message_to_history(self) -> None:
         app = self._make_app()
-        app._conv_lines = ["[USR] hello", "[BTL] world"]
-        app._refresh()
-        assert "hello" in app._history_buf.text
-        assert "world" in app._history_buf.text
+        app._route_input("my question")
+        assert len(app._history._messages) == 1
+        assert app._history._messages[0].content == "my question"
 
-    def test_refresh_empty_conv_clears_buffer(self) -> None:
-        app = self._make_app()
-        app._conv_lines = ["[USR] something"]
-        app._refresh()
-        app._conv_lines = []
-        app._refresh()
-        assert app._history_buf.text == ""
+
+# ---------------------------------------------------------------------------
+# main()
+# ---------------------------------------------------------------------------
 
 
 class TestMain:
@@ -149,20 +165,26 @@ class TestMain:
         """--logs pointing to a missing file is silently ignored (empty log_lines)."""
         missing = tmp_path / "missing.log"
         with patch("sys.argv", ["beetle", "--logs", str(missing)]), \
-             patch("beetle.__main__.BeetleApp") as MockApp:
+             patch("beetle.__main__.BeetleSession") as MockSession, \
+             patch("beetle.__main__.BeetleTuiApp") as MockApp:
+            mock_session = MagicMock()
+            MockSession.return_value = mock_session
             mock_instance = MagicMock()
             mock_instance.run = AsyncMock(return_value=None)
             MockApp.return_value = mock_instance
             main()
-        MockApp.assert_called_once_with([])
+        MockSession.assert_called_once_with([])
 
     def test_main_loads_logs_from_file(self, tmp_path) -> None:
         log_file = tmp_path / "test.log"
         log_file.write_text("[INF] hello\n[ERR] boom", encoding="utf-8")
         with patch("sys.argv", ["beetle", "--logs", str(log_file)]), \
-             patch("beetle.__main__.BeetleApp") as MockApp:
+             patch("beetle.__main__.BeetleSession") as MockSession, \
+             patch("beetle.__main__.BeetleTuiApp") as MockApp:
+            mock_session = MagicMock()
+            MockSession.return_value = mock_session
             mock_instance = MagicMock()
             mock_instance.run = AsyncMock(return_value=None)
             MockApp.return_value = mock_instance
             main()
-        MockApp.assert_called_once_with(["[INF] hello", "[ERR] boom"])
+        MockSession.assert_called_once_with(["[INF] hello", "[ERR] boom"])

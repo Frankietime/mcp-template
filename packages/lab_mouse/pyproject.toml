@@ -1,23 +1,29 @@
 [project]
-name = "beetle"
+name = "lab_mouse"
 version = "0.1.0"
-description = "Beetle (=){) — logs interpreter agent for pydantic-ai TUIs"
+description = "Pydantic-AI MCP client lab_mouse"
 requires-python = ">=3.13"
 
 dependencies = [
     "pydantic-ai>=0.2.0",
-    "prompt-toolkit>=3.0.51",
+    "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "prompt-toolkit>=3.0.51",
+    "mcp-shared",
+    "beetle",
     "tui",
 ]
 
 [project.scripts]
-beetle = "beetle.__main__:main"
+lab_mouse = "lab_mouse.__main__:main"
 
 [tool.uv]
 package = true
 
 [tool.uv.sources]
+mcp-shared = { workspace = true }
+beetle = { workspace = true }
 tui = { workspace = true }
 
 [build-system]

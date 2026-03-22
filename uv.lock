@@ -4,11 +4,12 @@ requires-python = ">=3.13"
 
 [manifest]
 members = [
-    "agent",
     "beetle",
+    "lab-mouse",
     "mcp-server",
     "mcp-shared",
     "mcp-template-workspace",
+    "tui",
 ]
 
 [[package]]
@@ -21,31 +22,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/53/ee/319d189343e1dc67b1109c950a0d1091fe32498104b5917fbbd806ff58dd/ag_ui_protocol-0.1.14.tar.gz", hash = "sha256:d8e86b308f86a6cf6a5e18ca7154d7642895de2fe94cd2cece57723cdbba6406", size = 5687, upload-time = "2026-03-18T00:43:13.358Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/99/eaa83816924791fc25ebb44ac7987196b687a3fdf597b1e7a62c69306a8d/ag_ui_protocol-0.1.14-py3-none-any.whl", hash = "sha256:ec072e6a45e0d45b8714e6d54919cc9bde3d097fdc36f7e82953b2f21f1cdbef", size = 8069, upload-time = "2026-03-18T00:43:12.1Z" },
-]
-
-[[package]]
-name = "agent"
-version = "0.1.0"
-source = { editable = "packages/agent" }
-dependencies = [
-    { name = "beetle" },
-    { name = "mcp-shared" },
-    { name = "prompt-toolkit" },
-    { name = "pydantic" },
-    { name = "pydantic-ai" },
-    { name = "python-dotenv" },
-    { name = "rich" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "beetle", editable = "packages/beetle" },
-    { name = "mcp-shared", editable = "packages/mcp_shared" },
-    { name = "prompt-toolkit", specifier = ">=3.0.51" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pydantic-ai", specifier = ">=0.2.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "rich", specifier = ">=13.0.0" },
 ]
 
 [[package]]
@@ -230,11 +206,19 @@ name = "beetle"
 version = "0.1.0"
 source = { editable = "packages/beetle" }
 dependencies = [
+    { name = "prompt-toolkit" },
     { name = "pydantic-ai" },
+    { name = "python-dotenv" },
+    { name = "tui" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic-ai", specifier = ">=0.2.0" }]
+requires-dist = [
+    { name = "prompt-toolkit", specifier = ">=3.0.51" },
+    { name = "pydantic-ai", specifier = ">=0.2.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "tui", editable = "packages/tui" },
+]
 
 [[package]]
 name = "boto3"
@@ -1349,6 +1333,33 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/4b/674af6ef2f97d56f0ab5153bf0bfa28ccb6c3ed4d1babf4305449668807b/keyring-25.7.0.tar.gz", hash = "sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b", size = 63516, upload-time = "2025-11-16T16:26:09.482Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/db/e655086b7f3a705df045bf0933bdd9c2f79bb3c97bfef1384598bb79a217/keyring-25.7.0-py3-none-any.whl", hash = "sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f", size = 39160, upload-time = "2025-11-16T16:26:08.402Z" },
+]
+
+[[package]]
+name = "lab-mouse"
+version = "0.1.0"
+source = { editable = "packages/lab_mouse" }
+dependencies = [
+    { name = "beetle" },
+    { name = "mcp-shared" },
+    { name = "prompt-toolkit" },
+    { name = "pydantic" },
+    { name = "pydantic-ai" },
+    { name = "python-dotenv" },
+    { name = "rich" },
+    { name = "tui" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beetle", editable = "packages/beetle" },
+    { name = "mcp-shared", editable = "packages/mcp_shared" },
+    { name = "prompt-toolkit", specifier = ">=3.0.51" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pydantic-ai", specifier = ">=0.2.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "rich", specifier = ">=13.0.0" },
+    { name = "tui", editable = "packages/tui" },
 ]
 
 [[package]]
@@ -3063,6 +3074,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/09/a9/6ba95a270c6f1fbcd
 wheels = [
     { url = "https://files.pythonhosted.org/packages/16/e1/3079a9ff9b8e11b846c6ac5c8b5bfb7ff225eee721825310c91b3b50304f/tqdm-4.67.3-py3-none-any.whl", hash = "sha256:ee1e4c0e59148062281c49d80b25b67771a127c85fc9676d3be5f243206826bf", size = 78374, upload-time = "2026-02-03T17:35:50.982Z" },
 ]
+
+[[package]]
+name = "tui"
+version = "0.1.0"
+source = { editable = "packages/tui" }
+dependencies = [
+    { name = "prompt-toolkit" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "prompt-toolkit", specifier = ">=3.0.51" }]
 
 [[package]]
 name = "ty"

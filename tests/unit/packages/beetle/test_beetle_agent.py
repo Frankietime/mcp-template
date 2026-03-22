@@ -31,6 +31,55 @@ class TestBuildBeetlePrompt:
         assert "line 299" in prompt
         assert "line 0" not in prompt
 
+    def test_filter_noise_removes_http_success(self) -> None:
+        logs = [
+            '[ERR] mcp: Connection refused',
+            '[INF] httpx: HTTP Request: POST https://api.example.com "HTTP/1.1 200 OK"',
+        ]
+        prompt = build_beetle_prompt(logs, "errors?", filter_noise=True)
+        assert "Connection refused" in prompt
+        assert "200 OK" not in prompt
+
+    def test_filter_noise_false_leaves_all_lines(self) -> None:
+        logs = [
+            '[ERR] mcp: Connection refused',
+            '[INF] httpx: HTTP Request: POST https://api.example.com "HTTP/1.1 200 OK"',
+        ]
+        prompt = build_beetle_prompt(logs, "errors?", filter_noise=False)
+        assert "Connection refused" in prompt
+        assert "200 OK" in prompt
+
+    def test_active_levels_filters_by_level(self) -> None:
+        logs = [
+            '[DBG] httpx: connecting',
+            '[ERR] mcp: Connection refused',
+            '[INF] agent: Running',
+        ]
+        prompt = build_beetle_prompt(logs, "errors?", active_levels={"ERR"})
+        assert "Connection refused" in prompt
+        assert "connecting" not in prompt
+        assert "Running" not in prompt
+
+    def test_active_levels_preserves_traceback_lines(self) -> None:
+        logs = [
+            '[ERR] agent: Unhandled exception',
+            '  File "app.py", line 10',
+            '[INF] agent: Starting',
+        ]
+        prompt = build_beetle_prompt(logs, "what broke?", active_levels={"ERR"})
+        assert "Unhandled exception" in prompt
+        assert 'File "app.py"' in prompt
+        assert "Starting" not in prompt
+
+    def test_signal_fills_max_lines_after_filter(self) -> None:
+        # 5 noise + 3 signal; max_lines=3 → all 3 signal lines should appear
+        noise = ['[INF] httpx: HTTP Request: POST https://example.com "HTTP/1.1 200 OK"'] * 5
+        signal = ['[ERR] agent: error one', '[ERR] agent: error two', '[ERR] agent: error three']
+        prompt = build_beetle_prompt(noise + signal, "errors?", max_lines=3, filter_noise=True)
+        assert "error one" in prompt
+        assert "error two" in prompt
+        assert "error three" in prompt
+
 
 class TestCreateBeetleAgent:
     def test_returns_agent_with_no_tools(self) -> None:
